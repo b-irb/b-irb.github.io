@@ -1,7 +1,7 @@
 - 2020-04-20
 - HTB Monteverde
 
-![machine profile](web/assets/htb_monteverde_profile.png)
+![machine profile](assets/htb_monteverde_profile.png)
 
 **Summary:**
 - Find credentials for user account over `msrpc`.

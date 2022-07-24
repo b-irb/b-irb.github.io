@@ -79,7 +79,7 @@ DataDirectory /var/lib/tor
 
 I was then able to view the `Nyx` dashboard which presents several relay metrics and properties.
 
-![Nyx interface](web/assets/tor-relay-nyx.webp)
+![Nyx interface](assets/tor-relay-nyx.webp)
 
 `Nyx` said the relay was transferring a whopping 420bps! The low bandwidth is the result of a 20KB cap applied during this phase. As an aside, the relay bootstrap phase was recorded in the logs.
 
@@ -199,7 +199,7 @@ Advertised bandwidth increased to 12.13 MiB/s. Further, the middle probability d
 
 It had been 9 days since the relay first came online and `vnstati` had produced a traffic summary over the last week. The local data and remote consensus data presented an opportunity to inspect traffic behaviour and consensus values as the relay traversed through multiple phases. Firstly, the network consensus values are inspected because they were causal to the relay traffic (with respect to the network).
 
-![atlas network visualisation](web/assets/tor_relay_atlas_network_visualisation.webp)
+![atlas network visualisation](assets/tor_relay_atlas_network_visualisation.webp)
 
 The rightmost graph, the network consensus visualisation, clearly shows each relay phase. Between Jun 6th (unlisted at the far left) and Jun 9th there is very little traffic, at some point during Jun 8th it appears the relay began the remote measurement phase. The relay is restricted to < 700 KiB/s.
 

@@ -1,7 +1,7 @@
 - 2020-04-20
 - HTB Cascade
 
-![machine profile](web/assets/htb_cascade_profile.webp)
+![machine profile](assets/htb_cascade_profile.webp)
 
 **Summary:**
 - User enumeration through `msrpc`
@@ -145,7 +145,7 @@ smb: \IT\> dir
 
 Inspect all the files available to us on SMB. Eventually, we find `\IT\Email Archives\Meeting_Notes_June_2018.html` which can be opened in a browser.
 
-![Meeting notes](web/assets/htb_cascade_email.webp)
+![Meeting notes](assets/htb_cascade_email.webp)
 
 From this we obtain two important pieces of information:
 - TempAdmin had (and possibly still has) the same credentials as the Administrator account.

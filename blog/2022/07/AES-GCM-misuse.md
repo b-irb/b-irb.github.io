@@ -76,7 +76,7 @@ b'super secret message?\x82X\xba5\xd4\xcc\xca\xbf...'
 
 This is due to how AES-GCM is constructed, which is AES-CTR with GCM slapped on.
 
-![AES-GCM](web/assets/aes-ctr.webp)
+![AES-GCM](assets/aes-ctr.webp)
 
 The diagram does not include the GHASH components because it is irrelevant here. AES-GCM will create one-time-pad for each plaintext block by appending a 32-bit incrementing counter to the input IV, which is encrypted with AES using the secret key. Then the one-time-pad is xor-d with its associated plaintext block to encrypt it.
 

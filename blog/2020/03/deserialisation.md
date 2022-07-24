@@ -91,7 +91,7 @@ The game is blindly deserialising the file `.save`. We can inspect this file.
 
 `pickle` is a binary serialisation format but we can still see some textual data. What if we modify this file?
 
-![bindiff of save files](web/assets/deserialisation_bindiff.png)
+![bindiff of save files](assets/deserialisation_bindiff.png)
 
 We successfully changed our player's name.
 

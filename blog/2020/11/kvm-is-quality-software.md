@@ -58,7 +58,7 @@ The KVM guest supports `XSAVE` but the execution control for the nested guest is
 
 You are greeted by a kernel panic as the entire kernel locks up.
 
-![XSAVE invalid opcode kernel panic](web/assets/xsave_ud.webp)
+![XSAVE invalid opcode kernel panic](assets/xsave_ud.webp)
 
 ### Debugging
 
