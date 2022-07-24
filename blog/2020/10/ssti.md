@@ -32,7 +32,7 @@ os.popen("cat flag/flag.txt").read()
 
 The webpage consists of a HTML form and two `textarea`'s for input and output; below is an image.
 
-![webpage](web/assets/reply_web200.png)
+![webpage](assets/reply_web200.png)
 
 Inspecting the page source uncovers a comment.
 
@@ -51,7 +51,7 @@ E9:D :D 2 E6DE | : | this is a test
 
 A web-browser became limiting once the user facing aspects of the page were investigated, [BurpSuite](https://portswigger.net/burp) became useful to log, inspect, and modify requests made to the webserver. The requests to decrypt data were generic HTTP POST requests with form data which included a `cipher` field.
 
-![BurpSuite](web/assets/reply_web200_burp.png)
+![BurpSuite](assets/reply_web200_burp.png)
 
 There were several possibilities at this point depending on the programming language/environment being used by the webserver:
 - [Type Juggling](https://www.youtube.com/watch?v=ASYuK01H3Po) (PHP)
@@ -72,7 +72,7 @@ SSTI was not considered at this point because the webpage did not look immediate
 %0A/usr/bin/id%0A
 ```
 
-![Sniper output](web/assets/reply_web200_sniper.png)
+![Sniper output](assets/reply_web200_sniper.png)
 
 Looking at the sizes of the responses we see that two payloads had a significantly smaller page size which suggested there was an error during processing, sending this request in burp we see this for ourselves.
 
@@ -81,7 +81,7 @@ Looking at the sizes of the responses we see that two payloads had a significant
 " AND 1=0 UNION ALL SELECT "", "81dc9bdb52d04dc20036dbd8313ed055
 ```
 
-![Internal error](web/assets/reply_web200_error.png)
+![Internal error](assets/reply_web200_error.png)
 
 While disecting the above payloads we discovered "LL" would break the server, decrypting this gave {% raw %} {{ {% endraw %} which immediately meant this was an SSTI vulnerability.
 
@@ -89,7 +89,7 @@ While disecting the above payloads we discovered "LL" would break the server, de
 
 Knowing it was SSTI was due to knowing the templating engine [Jinja2](https://jinja.palletsprojects.com/en/2.11.x/) (used by [Flask](https://flask.palletsprojects.com/en/1.1.x/)) uses {% raw %} {{ {% endraw %} for marking the start of templates. The next step was to look at the Jinja2 documentation to see how a request can be crafted to access information on the webserver. The documentation mentioned that there are specific [global varaibles](https://jinja.palletsprojects.com/en/2.11.x/api/#global-namespace) available within templates, inspecting this on a local machine saw that the Flask [`request`](https://werkzeug.palletsprojects.com/en/1.0.x/wrappers/#werkzeug.wrappers.BaseRequest) object and [`config`](https://flask.palletsprojects.com/en/1.1.x/api/#configuration) object was available. To learn more about the webserver, the payload {% raw %} {{config}} {% endraw %} was encoded then decoded.
 
-![Flask configuration](web/assets/reply_web200_config.png)
+![Flask configuration](assets/reply_web200_config.png)
 
 There is an entry: `'SECRET_KEY': '}FLG:ThisIsTheRightFlag!{'` which is a false flag (literally), we have to exploit the webserver. To do this, we successively modify the below script until we can encode then execute it on the server.
 
@@ -106,7 +106,7 @@ __import__("os").os.open("cmd").read()
 
 `__import__` is filtered.
 
-![filter](web/assets/reply_web200_filter.png)
+![filter](assets/reply_web200_filter.png)
 
 To indirectly reference `__import__` we can access it through [`__builtins__`](https://docs.python.org/3/library/builtins.html) (a value containing all built-in objects) using `getattr` (the function invoked for the `.` operator).
 
@@ -145,7 +145,7 @@ quest|attr('f\x6frm'))['a\x72gs2']])[(request|attr('f\x6frm'))['a\x72gs3']])((re
 
 (`"form"` and `"args"` is escaped, hence the hex encoding). The request arguments contain the strings above in order for the request to succeed. Putting this payload into Burp then sending it yields:
 
-![flag](web/assets/reply_web200_flag.png)
+![flag](assets/reply_web200_flag.png)
 
 The raw request is listed below:
 
