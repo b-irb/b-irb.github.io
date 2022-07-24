@@ -1,5 +1,5 @@
 - 2020-04-20
-- Hack The Box: Monteverde
+- HTB Monteverde
 
 ![machine profile](web/assets/htb_monteverde_profile.png)
 
