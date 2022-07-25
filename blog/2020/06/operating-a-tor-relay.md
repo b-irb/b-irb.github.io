@@ -209,10 +209,8 @@ Within the last 24 hours, the relay had began the guard phase. As expected, the 
 
 The latest local visualisations of relay traffic are shown below.
 
-<p align="center">
-<img alt="daily traffic visualisation" src="/blog/assets/images/tor_relay_2020_06_15_summary.png">
-<img alt="daily traffic visualisation" src="/blog/assets/images/tor_relay_2020_06_15_daily.png">
-</p>
+![daily traffic visualisation](assets/tor_relay_2020_06_15_summary.webp)
+![daily traffic visualisation](assets/tor_relay_2020_06_15_daily.webp)
 
 The relay had transferred 3.9TB in total since the 6th of Jun. However, between the 12th and the 14th, 2.76TB had been transferred. The increase in traffic coincides with the rapid increase in middle probability. Looking at the daily graph, the incremental increase in traffic is clear. Hourly traffic measurements show the traffic peaks between 11:00 - 15:00 (UTC), longer analysis is required to build a traffic schedule.
 
