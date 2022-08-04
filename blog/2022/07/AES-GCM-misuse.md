@@ -33,7 +33,7 @@ from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 
 ...
 dh_secret = sk.exchange(peer_pk)
-# omit a salt or use a salt to "spruce up" randomness 
+# omit a salt or use a salt to "spruce up" randomness
 key = HKDF(hashes.SHA256(), length=32, salt, info=b"encryption key")
 ```
 
@@ -51,7 +51,7 @@ from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 key = AESGCM.generate_key(bit_length=128)
 cipher = AESGCM(key)
 
-note1 = b"super secret message from Bob to Alice"
+note1 = b"super secret message"
 note2 = b"\0" * len(note1)
 
 nonce = b"\0" * 12
@@ -92,7 +92,7 @@ assert ciphertext_a ^ ciphertext_b == plaintext_a ^ plaintext_b
 
 In the attack demonstrated, we used a plaintext padded with 0s to better illustrate the attack. However, in practice it is often possible to manipulate the plaintext to include known values which can leak partial messages.
 
-An important note is this only produces the xor-d plaintexts if the nonces are identical for the blocks, **including the counter**. 
+An important note is this only produces the xor-d plaintexts if the nonces are identical for the blocks, **including the counter**.
 
 ## Nonce Reuse: Hash Subkey Recovery
 
