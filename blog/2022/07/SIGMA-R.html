@@ -1,0 +1,186 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>SIGMA-R</title>
+</head>
+<style>
+footer {
+    font-size: 13px;
+}
+
+body {
+    font: 1em "Arial", sans-serif;
+    overflow-wrap: normal;
+    max-width: 80%;
+    margin: 0 auto 0 auto;
+}
+
+img {
+    max-width: 100%;
+}
+
+pre {
+    font: 0.9em "Courier New";
+}
+
+nav ul {
+    list-style: none;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    padding: 0px;
+}
+
+nav ul li {
+    margin-right: 20px;
+}
+
+code {
+    font-size: 1.4em;
+}
+
+blockquote {
+    margin-left: 5px;
+    padding-left: 15px;
+    border-left: 3px solid #ccc;
+}
+
+@media screen and (min-width: 800px) {
+body {
+    max-width: 50%;
+}
+}
+
+</style>
+<body>
+<nav>
+    <ul>
+        <li><a href="/">Index</a></li>
+        <li><a href="/blog">blog</a></li>
+    </ul>
+</nav>
+<h1>SIGMA-R</h1>
+<article><script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+<p>SIGMA-R is a member of the <a href="https://webee.technion.ac.il/%7Ehugo/sigma-pdf.pdf">SIGMA (SIGn-and-MAc)</a>
+authenticated key exchange family, using Diffie-Hellman. The SIGMA family was
+used with IPSec IKE(straightforv2) and inspired early versions of TLS. This article explains the SIGMA protocol family with heavy references to the <a href="https://webee.technion.ac.il/%7Ehugo/sigma.html">SIGMA presentation</a>.</p>
+<p>It is not to be confused with <a href="https://crypto.stanford.edu/cs355/19sp/lec6.pdf">sigma protocols</a>.</p>
+<h2>Primer: Diffie-Hellman</h2>
+<p>Two parties, \(A\) and \(B\), have a shared generator \(g \in G\) where \(G\) is a group and \(\forall a,b \in \mathbb{N}.\,\, g^{ab} = g^{ba}\). For FFDHE, it is important to parameterize the group and generator (<a href="https://weakdh.org/imperfect-forward-secrecy-ccs15.pdf">which many IKE servers failed to do</a>). </p>
+<p>The below command will generate custom FFDHE parameters:</p>
+<pre style="background-color:#ffffff;">
+<span style="color:#323232;">$ openssl dhparam -out dhparam 4096
+</span></pre>
+</code></pre>
+<p>ECDHE does not require parameterization because ECDHE uses safe curves (e.g., <a href="https://cr.yp.to/ecdh/curve25519-20060209.pdf">Curve25519</a> or <a href="https://safecurves.cr.yp.to/">others</a>).</p>
+<p>$$
+\begin{eqnarray*}
+\text{A} &amp;\xrightarrow{g^a} \text{B} \\
+\text{A} &amp;\xleftarrow{g^b} \text{B} 
+\end{eqnarray*}
+$$</p>
+<p>Now A and B can compute \(g^{ab} = x = g^{ba}\) then derive a shared key, \(\text{key} = \text{KDF}(x)\).</p>
+<h2>Authenticated Diffie-Hellman</h2>
+<p>The problem with Diffie-Hellman is that the parties are unauthenticated so it is feasible for an active attacker \(E\) to intercept all communication.</p>
+<p>$$
+\begin{eqnarray*}
+\text{A} \xrightarrow{g^a} \text{E} \xrightarrow{h^c} \text{B} \\
+\text{A} \xleftarrow{h^d} \text{E} \xleftarrow{g^b} \text{B}
+\end{eqnarray*}
+$$</p>
+<p>However, blindly attaching signatures introduces an identity midbinding attack and other vulnerabilities.</p>
+<p>$$
+\begin{eqnarray*}
+\text{A} \xrightarrow{g^a} &amp;\text{E} \xrightarrow{g^a} \text{B} \\
+\text{A} \xleftarrow{g^b,\,B,\,\text{SIG}_\text{B}(g^b, g^a)} &amp;\text{E} \xleftarrow{g^b,\,B,\,\text{SIG}_\text{B}(g^b,\,g^a)} \text{B} \\
+\text{A} \xrightarrow{A,\,\text{SIG}_\text{A}(g^a, g^b)} &amp;\text{E} \xrightarrow{E,\,\text{SIG}_\text{E}(g^a,\,g^b)} \text{B}
+\end{eqnarray*}
+$$</p>
+<p>\(B\) believes they’re talking to \(E\) whereas \(A\) believes they’re talking to \(B\). Additionally, this leaks the identity of both \(A\) and \(B\) which restricts privacy. There are other schemes for attempting to implement authentication by attaching a signature to all handshake messages but this is vulnerable to a reflection attack.</p>
+<h2>Improvements</h2>
+<p>We need to authenticate both parties without leaking their identities, prevent identity misbinding, and prevent reflection attacks – with as few round-trips as possible.</p>
+<p>SIGMA-R compromises on the privacy of the initiator (the SIGMA-I variant protects the identity of the initiator). </p>
+<h2>STS</h2>
+<p>An early design of an authenticated key exchange was STS. However, STS suffered from identity misbinding where an attacker could register their identity (assuming proof of posession of the private key is not required) then replace the initiating identity with their own. </p>
+<p>An additional variant of STS (MACed-signature) also suffered from identity misbinding.</p>
+<p>From the <a href="https://webee.technion.ac.il/%7Ehugo/sigma-pdf.pdf">paper presenting SIGMA</a>:</p>
+<blockquote>
+<p>The failure to the misbinding attack is more essentially related to the
+<em>insufficiency</em> of binding the Diffie-Hellman key with signatures. Such a binding […]
+provides a proof that <em>someone</em> knows the session key, but does not prove
+<em>who</em> this <em>someone</em> is.</p>
+</blockquote>
+<h3>Photuris</h3>
+<p>Photuris improved over the MACed-signature variant by binding the DH key under the signature, alongside the peers’ parameters.</p>
+<p>$$ \text{SIG}_\text{X}(g^a,g^b,\text{PRF}(g^{ab})) $$</p>
+<p>The \(\text{PRF}\) (e.g., <a href="https://datatracker.ietf.org/doc/html/rfc2522#section-10">MD5</a> – the protocol is from 1999) is used to preserve the confidentiality of \(g^{ab}\) in case the signature allows for message recovery (e.g., <a href="https://web.archive.org/web/20170810025803/http://grouper.ieee.org/groups/1363/P1363a/contributions/pss-submission.pdf">RSA with EMSR-PSS</a> – <a href="https://blog.trailofbits.com/2019/07/08/fuck-rsa/">stop using RSA</a>).</p>
+<p>However, Photuris also has an identity misbinding attack if the signature allows for message recovery. If an attacker can recover the signature message then the attacker can sign the message with their private key for a registered public identity which will successfully authenticate.</p>
+<p>Additionally, Photuris potentially leaks the hash of \(g^{ab}\) which can allow an eavesdropper to derive the symmetric key where:</p>
+<p>$$
+\text{K}_s = \text{HMAC-MD5}(\text{MD5}(g^{ab}))
+$$</p>
+<p><a href="https://soatok.blog/2020/11/27/the-subtle-hazards-of-real-world-cryptography/">This article</a> has a good explanation of why this is the case.</p>
+<p><strong>In summary:</strong> the key exchange must bind the identities to the signatures – verifying the identity of the signer.</p>
+<h2>ISO</h2>
+<p>The ISO IKE protocol is capable of providing an authenticated key exchange but does not protect the identities of the peers.</p>
+<p>$$
+\begin{eqnarray*}
+\text{A} \xrightarrow{A,\,g^x} \text{B} \\
+\text{A} \xleftarrow{B,\,g^y,\,\text{SIG}_\text{B}(g^x,\,g^y,\,A)} \text{B} \\
+\text{A} \xrightarrow{\text{SIG}_\text{B}(g^y,\,g^x,\,B)} \text{B}
+\end{eqnarray*}
+$$</p>
+<p>This is suitable for applications where the identities of the peers are not secret (e.g., a network operator needs to passively record network interactions). However, identities are best concealed for the public Internet.</p>
+<h2>SIGMA</h2>
+<p>SIGMA aims to provide the security of ISO IKE while adding identity confidentiality. Critically, SIGMA MACs the peer identities using the derived Diffie-Hellman key to bind the identities to the newly established session and signs the peer parameters to serve as proof of posession of the identity private key. </p>
+<p>$$
+\begin{eqnarray*}
+\text{A} \xrightarrow{g^x} \text{B} \\
+\text{A} \xleftarrow{B,\,g^y,\,\text{SIG}_\text{B}(g^x,\,g^y),\,\text{MAC}_{K_m}(B)} \text{B} \\
+\text{A} \xrightarrow{A,\,\text{SIG}_\text{A}(g^y,\,g^x),\,\text{MAC}_{K_m}(A)} \text{B} \\
+\end{eqnarray*}
+$$</p>
+<p>Where \(K_m\) is a <strong>handshake key</strong> derived from \(g^{xy}\). This is the basis of SIGMA but does <em>not protect identities</em>. Additionally, the signature may be over any ephemeral public value (e.g., nonce or Diffie-Hellman value) but it must be ephemeral or a replay attack is possible.</p>
+<p>Note: the handshake key should <strong>not</strong> be used as the symmetric key; a new session key should be generated to enforce independence.</p>
+<h3>SIGMA-R</h3>
+<p>SIGMA-R is an extension to the basic SIGMA handshake which protects the identity of the responder (the identity of the initiator is unprotected from an active attacker).</p>
+<p>SIGMA-R will delay authenticating identities until the key exchange has occured.</p>
+<p>$$
+\begin{eqnarray*}
+\text{A} \xrightarrow{g^x} \text{B} \\
+\text{A} \xleftarrow{g^y} \text{B} \\
+\text{A} \xrightarrow{A,\,\text{SIG}_\text{A}(g^y,\,g^x),\,\text{MAC}_{K_m}(A)} \text{B} \\
+\text{A} \xrightarrow{B,\,\text{SIG}_\text{B}(g^x,\,g^y),\,\text{MAC}_{K_m}(B)} \text{B}
+\end{eqnarray*}
+$$</p>
+<p>With the same constraints as the basic SIGMA handshake. However, it is crucial that if it is valid for A to exchange a key with itself then the MAC <strong>must be</strong> bound to an identity specific value to prevent reflection attacks.</p>
+<pre style="background-color:#ffffff;">
+<span style="color:#323232;">initiator_mac_key </span><span style="font-weight:bold;color:#a71d5d;">= </span><span style="color:#323232;">HKDF(hashes.SHA256(), info</span><span style="font-weight:bold;color:#a71d5d;">=b</span><span style="color:#183691;">&quot;initiator mac key&quot;</span><span style="color:#323232;">, </span><span style="color:#0086b3;">...</span><span style="color:#323232;">).derive(shared_key)
+</span><span style="color:#323232;">responder_mac_key </span><span style="font-weight:bold;color:#a71d5d;">= </span><span style="color:#323232;">HKDF(hashes.SHA256(), info</span><span style="font-weight:bold;color:#a71d5d;">=b</span><span style="color:#183691;">&quot;responder mac key&quot;</span><span style="color:#323232;">, </span><span style="color:#0086b3;">...</span><span style="color:#323232;">).derive(shared_key)
+</span></pre>
+</code></pre>
+<h4>Combined MAC and Signature</h4>
+<p>It is possible to reduce the message size by including the MAC under the signature (the MAC can be calculated by the recipient).</p>
+<p>$$
+\begin{eqnarray*}
+&amp;\vdots&amp; \\
+\text{A} &amp;\xrightarrow{A,\,\text{SIG}_\text{A}(g^y,\,g^x,\,\text{MAC}_{K_m}(A))} \text{B} \\
+\text{A} &amp;\xrightarrow{B,\,\text{SIG}_\text{B}(g^x,\,g^y,\,\text{MAC}_{K_m}(B))} \text{B}
+\end{eqnarray*}
+$$</p>
+<p>Additionally, it is possible to wrap the \(g^x\) and \(g^y\) parameters under the MAC.</p>
+<p>A pseudo-implementation is available <a href="https://gist.github.com/birb007/2a1e7f3adbab34a41530037417f782d0">here</a>.</p>
+<h2>Implementation Recommendations</h2>
+<ul>
+<li>Use a protocol with verifiable security (e.g., <a href="https://www.microsoft.com/en-us/research/publication/proving-the-tls-handshake-secure-as-it-is/">TLS</a>)</li>
+<li>Use the <a href="https://noiseprotocol.org/">Noise Protocol Framework</a> to design a secure protocol</li>
+<li>Consider whether SIGMA-R is suitable for your application; compare against the other SIGMA variants.</li>
+</ul>
+</article>
+</body>
+<footer>updated: 2022-07-25</footer>
+</html>
+
