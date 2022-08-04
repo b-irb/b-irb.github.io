@@ -1,4 +1,4 @@
-- 2020-04-19
+- 2022-08-04
 - Information Leakage With Struct Padding
 
 Information leakage is a common auxiliary to execute an elaborate exploit. Process memory may contain secrets, such as: passwords, encryption keys, stack canaries, pointers to other data structures, etc. Consequently, allowing an attacker to leak process memory can have significant consequences. Typically, information leakage is the result of forcing an application to output uninitialised memory (considered UB in most, sane, languages).
@@ -29,12 +29,10 @@ $2 = (char (*)[100]) 0x7fffffffdf40
 
 Next, we attempt to read 16 bytes into `buf` with `fgets` then output the buffer to stdout. This looks fine but if we check the manpage for `fgets` we see:
 
-```
-fgets() reads in at most one less than size characters from stream and stores
-them into the buffer pointed to by s. Reading stops after an EOF or a newline.
-If a newline is read, it is stored into the buffer. A terminating null byte
-('\0') is stored after the last character in the buffer.
-```
+> fgets() reads in at most one less than size characters from stream and stores
+> them into the buffer pointed to by s. Reading stops after an EOF or a newline.
+> If a newline is read, it is stored into the buffer. A terminating null byte
+> ('\0') is stored after the last character in the buffer.
 
 If we skim this description it looks fine, `fgets` will place a null terminator once it encounters a newline or if it reads `size` characters. However, if we read more carefully *Reading stops after an EOF*. By sending an EOF (ctrl+d on most Linux terminals), we realise `fgets` will not place a null terminator which allows us to leak the password.
 
@@ -324,7 +322,7 @@ Continuing.
 hunter2
 s4lt
 
-Breakpoint 2, 0x00005555555552e4 in save_ciphertext_info (fname=0x555555556007 "ciphertext_info.bin") at vuln.c:46
+Breakpoint 2, ...
 46	    fwrite(&blob, sizeof(blob), 1, save_file);
 (gdb) p &blob->scheme
 $2 = (unsigned char *) 0x7fffffffe0d0 "\002unter2\n"
