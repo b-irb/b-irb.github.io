@@ -69,7 +69,7 @@ authenticated key exchange family, using Diffie-Hellman. The SIGMA family was
 used with IPSec IKE(straightforv2) and inspired early versions of TLS. This article explains the SIGMA protocol family with heavy references to the <a href="https://webee.technion.ac.il/%7Ehugo/sigma.html">SIGMA presentation</a>.</p>
 <p>It is not to be confused with <a href="https://crypto.stanford.edu/cs355/19sp/lec6.pdf">sigma protocols</a>.</p>
 <h2>Primer: Diffie-Hellman</h2>
-<p>Two parties, \(A\) and \(B\), have a shared generator \(g \in G\) where \(G\) is a group and \(\forall a,b \in \mathbb{N}.\,\, g^{ab} = g^{ba}\). For FFDHE, it is important to parameterize the group and generator (<a href="https://weakdh.org/imperfect-forward-secrecy-ccs15.pdf">which many IKE servers failed to do</a>). </p>
+<p>Two parties, \(A\) and \(B\), have a shared generator \(g \in G\) where \(G\) is a group and \(\forall a,b \in \mathbb{N}.\,\, g^{ab} = g^{ba}\). For FFDHE, it is important to parameterize the group and generator (<a href="https://weakdh.org/imperfect-forward-secrecy-ccs15.pdf">which many IKE servers failed to do</a>).</p>
 <p>The below command will generate custom FFDHE parameters:</p>
 <pre style="background-color:#ffffff;">
 <span style="color:#323232;">$ openssl dhparam -out dhparam 4096
@@ -79,7 +79,7 @@ used with IPSec IKE(straightforv2) and inspired early versions of TLS. This arti
 <p>$$
 \begin{eqnarray*}
 \text{A} &amp;\xrightarrow{g^a} \text{B} \\
-\text{A} &amp;\xleftarrow{g^b} \text{B} 
+\text{A} &amp;\xleftarrow{g^b} \text{B}
 \end{eqnarray*}
 $$</p>
 <p>Now A and B can compute \(g^{ab} = x = g^{ba}\) then derive a shared key, \(\text{key} = \text{KDF}(x)\).</p>
@@ -102,9 +102,9 @@ $$</p>
 <p>\(B\) believes they’re talking to \(E\) whereas \(A\) believes they’re talking to \(B\). Additionally, this leaks the identity of both \(A\) and \(B\) which restricts privacy. There are other schemes for attempting to implement authentication by attaching a signature to all handshake messages but this is vulnerable to a reflection attack.</p>
 <h2>Improvements</h2>
 <p>We need to authenticate both parties without leaking their identities, prevent identity misbinding, and prevent reflection attacks – with as few round-trips as possible.</p>
-<p>SIGMA-R compromises on the privacy of the initiator (the SIGMA-I variant protects the identity of the initiator). </p>
+<p>SIGMA-R compromises on the privacy of the initiator (the SIGMA-I variant protects the identity of the initiator).</p>
 <h2>STS</h2>
-<p>An early design of an authenticated key exchange was STS. However, STS suffered from identity misbinding where an attacker could register their identity (assuming proof of posession of the private key is not required) then replace the initiating identity with their own. </p>
+<p>An early design of an authenticated key exchange was STS. However, STS suffered from identity misbinding where an attacker could register their identity (assuming proof of posession of the private key is not required) then replace the initiating identity with their own.</p>
 <p>An additional variant of STS (MACed-signature) also suffered from identity misbinding.</p>
 <p>From the <a href="https://webee.technion.ac.il/%7Ehugo/sigma-pdf.pdf">paper presenting SIGMA</a>:</p>
 <blockquote>
@@ -135,7 +135,7 @@ $$</p>
 $$</p>
 <p>This is suitable for applications where the identities of the peers are not secret (e.g., a network operator needs to passively record network interactions). However, identities are best concealed for the public Internet.</p>
 <h2>SIGMA</h2>
-<p>SIGMA aims to provide the security of ISO IKE while adding identity confidentiality. Critically, SIGMA MACs the peer identities using the derived Diffie-Hellman key to bind the identities to the newly established session and signs the peer parameters to serve as proof of posession of the identity private key. </p>
+<p>SIGMA aims to provide the security of ISO IKE while adding identity confidentiality. Critically, SIGMA MACs the peer identities using the derived Diffie-Hellman key to bind the identities to the newly established session and signs the peer parameters to serve as proof of posession of the identity private key.</p>
 <p>$$
 \begin{eqnarray*}
 \text{A} \xrightarrow{g^x} \text{B} \\
@@ -153,7 +153,7 @@ $$</p>
 \text{A} \xrightarrow{g^x} \text{B} \\
 \text{A} \xleftarrow{g^y} \text{B} \\
 \text{A} \xrightarrow{A,\,\text{SIG}_\text{A}(g^y,\,g^x),\,\text{MAC}_{K_m}(A)} \text{B} \\
-\text{A} \xrightarrow{B,\,\text{SIG}_\text{B}(g^x,\,g^y),\,\text{MAC}_{K_m}(B)} \text{B}
+\text{A} \xleftarrow{B,\,\text{SIG}_\text{B}(g^x,\,g^y),\,\text{MAC}_{K_m}(B)} \text{B}
 \end{eqnarray*}
 $$</p>
 <p>With the same constraints as the basic SIGMA handshake. However, it is crucial that if it is valid for A to exchange a key with itself then the MAC <strong>must be</strong> bound to an identity specific value to prevent reflection attacks.</p>
@@ -168,7 +168,7 @@ $$</p>
 \begin{eqnarray*}
 &amp;\vdots&amp; \\
 \text{A} &amp;\xrightarrow{A,\,\text{SIG}_\text{A}(g^y,\,g^x,\,\text{MAC}_{K_m}(A))} \text{B} \\
-\text{A} &amp;\xrightarrow{B,\,\text{SIG}_\text{B}(g^x,\,g^y,\,\text{MAC}_{K_m}(B))} \text{B}
+\text{A} &amp;\xleftarrow{B,\,\text{SIG}_\text{B}(g^x,\,g^y,\,\text{MAC}_{K_m}(B))} \text{B}
 \end{eqnarray*}
 $$</p>
 <p>Additionally, it is possible to wrap the \(g^x\) and \(g^y\) parameters under the MAC.</p>
