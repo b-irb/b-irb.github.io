@@ -13,7 +13,7 @@ It is not to be confused with [sigma protocols](https://crypto.stanford.edu/cs35
 
 ## Primer: Diffie-Hellman
 
-Two parties, \\(A\\) and \\(B\\), have a shared generator \\(g \in G\\) where \\(G\\) is a group and \\(\forall a,b \in \mathbb{N}.\\,\\, g^{ab} = g^{ba}\\). For FFDHE, it is important to parameterize the group and generator ([which many IKE servers failed to do](https://weakdh.org/imperfect-forward-secrecy-ccs15.pdf)). 
+Two parties, \\(A\\) and \\(B\\), have a shared generator \\(g \in G\\) where \\(G\\) is a group and \\(\forall a,b \in \mathbb{N}.\\,\\, g^{ab} = g^{ba}\\). For FFDHE, it is important to parameterize the group and generator ([which many IKE servers failed to do](https://weakdh.org/imperfect-forward-secrecy-ccs15.pdf)).
 
 The below command will generate custom FFDHE parameters:
 
@@ -26,7 +26,7 @@ ECDHE does not require parameterization because ECDHE uses safe curves (e.g., [C
 $$
 \begin{eqnarray*}
 \text{A} &\xrightarrow{g^a} \text{B} \\\\
-\text{A} &\xleftarrow{g^b} \text{B} 
+\text{A} &\xleftarrow{g^b} \text{B}
 \end{eqnarray*}
 $$
 
@@ -59,11 +59,11 @@ $$
 
 We need to authenticate both parties without leaking their identities, prevent identity misbinding, and prevent reflection attacks -- with as few round-trips as possible.
 
-SIGMA-R compromises on the privacy of the initiator (the SIGMA-I variant protects the identity of the initiator). 
+SIGMA-R compromises on the privacy of the initiator (the SIGMA-I variant protects the identity of the initiator).
 
 ## STS
 
-An early design of an authenticated key exchange was STS. However, STS suffered from identity misbinding where an attacker could register their identity (assuming proof of posession of the private key is not required) then replace the initiating identity with their own. 
+An early design of an authenticated key exchange was STS. However, STS suffered from identity misbinding where an attacker could register their identity (assuming proof of posession of the private key is not required) then replace the initiating identity with their own.
 
 An additional variant of STS (MACed-signature) also suffered from identity misbinding.
 
@@ -110,7 +110,7 @@ This is suitable for applications where the identities of the peers are not secr
 
 ## SIGMA
 
-SIGMA aims to provide the security of ISO IKE while adding identity confidentiality. Critically, SIGMA MACs the peer identities using the derived Diffie-Hellman key to bind the identities to the newly established session and signs the peer parameters to serve as proof of posession of the identity private key. 
+SIGMA aims to provide the security of ISO IKE while adding identity confidentiality. Critically, SIGMA MACs the peer identities using the derived Diffie-Hellman key to bind the identities to the newly established session and signs the peer parameters to serve as proof of posession of the identity private key.
 
 $$
 \begin{eqnarray*}
@@ -135,7 +135,7 @@ $$
 \text{A} \xrightarrow{g^x} \text{B} \\\\
 \text{A} \xleftarrow{g^y} \text{B} \\\\
 \text{A} \xrightarrow{A,\\,\text{SIG}\_\text{A}(g^y,\\,g^x),\\,\text{MAC}_{K_m}(A)} \text{B} \\\\
-\text{A} \xrightarrow{B,\\,\text{SIG}\_\text{B}(g^x,\\,g^y),\\,\text{MAC}\_{K\_m}(B)} \text{B}
+\text{A} \xleftarrow{B,\\,\text{SIG}\_\text{B}(g^x,\\,g^y),\\,\text{MAC}\_{K\_m}(B)} \text{B}
 \end{eqnarray*}
 $$
 
@@ -154,7 +154,7 @@ $$
 \begin{eqnarray*}
 &\vdots& \\\\
 \text{A} &\xrightarrow{A,\\,\text{SIG}\_\text{A}(g^y,\\,g^x,\\,\text{MAC}_{K_m}(A))} \text{B} \\\\
-\text{A} &\xrightarrow{B,\\,\text{SIG}\_\text{B}(g^x,\\,g^y,\\,\text{MAC}\_{K\_m}(B))} \text{B}
+\text{A} &\xleftarrow{B,\\,\text{SIG}\_\text{B}(g^x,\\,g^y,\\,\text{MAC}\_{K\_m}(B))} \text{B}
 \end{eqnarray*}
 $$
 
