@@ -2,6 +2,7 @@
 - blog
 
 List of articles:
+- [Rolling Your Own Cyrpto](/blog/2023/01/rolling-your-own-crypto)
 - [SIGMA-R](/blog/2022/07/SIGMA-R)
 - [AES-GCM Misuse](/blog/2022/07/AES-GCM-misuse)
 - [KVM is Quality Software... lol?](/blog/2020/11/kvm-is-quality-software)
