@@ -5,8 +5,10 @@
     <title>HTB Monteverde</title>
 </head>
 <style>
+@import url('https://fonts.googleapis.com/css2?family=Fira+Mono&display=swap');
+
 footer {
-    font-size: 13px;
+    font-size: 0.7em;
 }
 
 body {
@@ -20,8 +22,9 @@ img {
     max-width: 100%;
 }
 
-pre {
-    font: 0.9em "Courier New";
+pre, code {
+    font-size: 0.9em;
+    font-family: 'Fira Mono', monospace;
 }
 
 nav ul {
@@ -30,14 +33,11 @@ nav ul {
     flex-direction: row;
     flex-wrap: wrap;
     padding: 0px;
+    flex-shrink: 0;
 }
 
 nav ul li {
     margin-right: 20px;
-}
-
-code {
-    font-size: 1.4em;
 }
 
 blockquote {
@@ -46,19 +46,12 @@ blockquote {
     border-left: 3px solid #ccc;
 }
 
-@media screen and (min-width: 800px) {
-body {
-    max-width: 50%;
-}
-}
-
 </style>
 <body>
 <nav>
     <ul>
         <li><a href="/">Index</a></li>
-        <!-- GitHub Pages complains about missing .html -->
-        <li><a href="/blog.html">blog</a></li>
+        <li><a href="/blog">blog</a></li>
     </ul>
 </nav>
 <h1>HTB Monteverde</h1>

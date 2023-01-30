@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Rolling Your Own Crypto</title>
+</head>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Fira+Mono&display=swap');
+
+footer {
+    font-size: 0.7em;
+}
+
+body {
+    font: 1em "Arial", sans-serif;
+    overflow-wrap: normal;
+    max-width: 80%;
+    margin: 0 auto 0 auto;
+}
+
+img {
+    max-width: 100%;
+}
+
+pre, code {
+    font-size: 0.9em;
+    font-family: 'Fira Mono', monospace;
+}
+
+nav ul {
+    list-style: none;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    padding: 0px;
+    flex-shrink: 0;
+}
+
+nav ul li {
+    margin-right: 20px;
+}
+
+blockquote {
+    margin-left: 5px;
+    padding-left: 15px;
+    border-left: 3px solid #ccc;
+}
+
+</style>
+<body>
+<nav>
+    <ul>
+        <li><a href="/">Index</a></li>
+        <li><a href="/blog">blog</a></li>
+    </ul>
+</nav>
+<h1>Rolling Your Own Crypto</h1>
+<article><script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+<p>We have all heard “don’t roll your own crypto” but what does it mean? Many
+developers (including myself) used to think it only extended to primitives
+(Curve25519) and ciphers (AES) but the saying extends further. Yet we have to
+implement and choose cryptographic protocols for our applications! So what are
+the issues with making an uninformed decision?</p>
+<p><strong>Disclaimer: I am not an expert; I am an opinionated person on the Internet.</strong></p>
+<p>A cryptographic protocol can be insecure <em>regardless of the primitives</em>. In
+cryptography, there is a lot of emphasis on “provable security” where a scheme
+is shown to reduce to the security of the underlying primitive. However, a user
+developing a custom protocol can introduce vulnerabilities despite using
+secure primitives.</p>
+<p>This article will explain some of the difficulties involved in writing (and
+choosing!) cryptographic protocols. Below are some easy examples of common
+issues in custom schemes.</p>
+<p>In this example, we use AESGCM to securely transmit a message but there is a
+fatal flaw.</p>
+<pre style="background-color:#ffffff;">
+<span style="font-weight:bold;color:#a71d5d;">import </span><span style="color:#323232;">os
+</span><span style="font-weight:bold;color:#a71d5d;">from </span><span style="color:#323232;">cryptography.hazmat.primitives.ciphers.aead </span><span style="font-weight:bold;color:#a71d5d;">import </span><span style="color:#0086b3;">AESGCM
+</span><span style="color:#323232;">
+</span><span style="color:#323232;">key </span><span style="font-weight:bold;color:#a71d5d;">= </span><span style="color:#323232;">AESGCM.generate_key(bit_length</span><span style="font-weight:bold;color:#a71d5d;">=</span><span style="color:#0086b3;">128</span><span style="color:#323232;">)
+</span><span style="color:#323232;">cipher </span><span style="font-weight:bold;color:#a71d5d;">= </span><span style="color:#323232;">AESGCM(key)
+</span><span style="color:#323232;">
+</span><span style="font-style:italic;color:#969896;"># client.py
+</span><span style="color:#323232;">msg </span><span style="font-weight:bold;color:#a71d5d;">= b</span><span style="color:#183691;">&quot;send $$ to Bob&quot;
+</span><span style="color:#323232;">nonce </span><span style="font-weight:bold;color:#a71d5d;">= </span><span style="color:#323232;">os.urandom(</span><span style="color:#0086b3;">12</span><span style="color:#323232;">)
+</span><span style="color:#323232;">ct </span><span style="font-weight:bold;color:#a71d5d;">= </span><span style="color:#323232;">cipher.encrypt(nonce, data</span><span style="font-weight:bold;color:#a71d5d;">=</span><span style="color:#323232;">msg, associated_data</span><span style="font-weight:bold;color:#a71d5d;">=</span><span style="color:#323232;">nonce)
+</span><span style="color:#323232;">send(nonce </span><span style="font-weight:bold;color:#a71d5d;">+ </span><span style="color:#323232;">ct)
+</span><span style="color:#323232;">
+</span><span style="color:#0086b3;">...
+</span><span style="color:#323232;">
+</span><span style="font-style:italic;color:#969896;"># server.py
+</span><span style="color:#323232;">payload </span><span style="font-weight:bold;color:#a71d5d;">= </span><span style="color:#323232;">recv()
+</span><span style="color:#323232;">nonce, ct </span><span style="font-weight:bold;color:#a71d5d;">= </span><span style="color:#323232;">payload[:</span><span style="color:#0086b3;">12</span><span style="color:#323232;">], payload[</span><span style="color:#0086b3;">12</span><span style="color:#323232;">:]
+</span><span style="color:#62a35c;">print</span><span style="color:#323232;">(cipher.decrypt(nonce, data</span><span style="font-weight:bold;color:#a71d5d;">=</span><span style="color:#323232;">ct, associated_data</span><span style="font-weight:bold;color:#a71d5d;">=</span><span style="color:#323232;">nonce))
+</span></pre>
+</code></pre>
+<p>It is trivial for an attacker to reply valid messages for the server to
+process (there are <a href="/blog/2022/07/AES-GCM-misuse">other issues</a> too).
+Or what if we simply want to authenticate a user with the following scheme:</p>
+<ol>
+<li>\(A\) sends \(g^a\) to \(B\)</li>
+<li>\(B\) sends \(g^b\) to \(A\)</li>
+<li>\(A\) sends \(\left\langle A, \text{SIG}_A(g^a)\right\rangle\) to \(B\)</li>
+<li>\(B\) sends \(\left\langle B, \text{SIG}_B(g^b)\right\rangle\) to \(A\)</li>
+</ol>
+<p>This ties the user identity to the exchanged keys to prevent a user from
+intercepting the key exchange. However, an active attacker, C, can reflect the
+messages from A to A which will authenticate successfully (called a
+<a href="https://en.wikipedia.org/wiki/Reflection_attack">reflection attack</a>).</p>
+<h2>Writing Your Own Protocol</h2>
+<p>If you are considering writing your own bespoke protocol then you are likely
+to encounter the following problems.</p>
+<h3>Identities</h3>
+<p>Most systems (if not all) involve some form of identity which is later
+authenticated with another identity or endpoint. User identities are public
+keys stored by end-users or an intermediate party (i.e. the service itself).</p>
+<h4>To Be or Not To Be (a CA)</h4>
+<p>It is <em>very</em> tempting to use standard web <a href="https://en.wikipedia.org/wiki/X.509">X.509</a>
+certificates or adapt them. The adaptations generally mean (ab)using the
+existing fields or adding custom extensions to convey application specific
+information (e.g. <a href="https://docs.r3.com/en/platform/corda/4.10/community/permissioning.html#certificate-role-extension">R3 Corda 4</a>).
+However, for a certificate to be trusted, it is signed by a Certificate
+Authority (CA) <strong>which will reject non-standard certificates.</strong> Consequently,
+as the protocol adapts, developers will continue to extend certificates which
+requires becoming a CA themselves to sign their custom certs.</p>
+<p>The role of a CA is essential to define the trust of a system; anything not
+signed by the CA is untrusted. If a CA is compromised or unavailable
+(retires) then the entire system becomes vulnerable. Therefore a CA operator
+must ensure the utmost security and availability (e.g. <a href="https://learn.microsoft.com/en-us/security/trusted-root/program-requirements">Microsoft Trusted Root Program</a>), which, frankly
+most organisations are not willing or able to do.</p>
+<p>Plus, being a CA is a total pain administratively so it is usually best to
+offload that work to <a href="https://www.ccadb.org/resources">someone trustworthy</a>.</p>
+<h4>Revocation</h4>
+<p>If an identity is compromised or a user wants to upgrade to a new scheme then
+the existing (published) identity <em>must be invalidated</em>. Revocation is easy
+in principle but exceedingly hard in practice. There are two main ways to
+have built-in revocation:</p>
+<ol>
+<li>Include an intrinsic expiration</li>
+<li>Publish a list of all revoked identities (interactive or non-interactive)</li>
+<li><a href="https://people.csail.mit.edu/rivest/pubs/Riv98b.pdf">Recency challenge responses</a></li>
+</ol>
+<p>Web certificates have generally moved to using short-lived certificates which
+need frequent renewal as well as publishing a <a href="https://en.wikipedia.org/wiki/Certificate_revocation_list">Certificate Revocation List (CRL)</a>. UEFI SecureBoot uses signed modules which
+are checked against <a href="https://uefi.org/revocationlistfile">dbx</a>. The revocation
+database is a list of module signatures which are marked as revoked but this
+list is monotonically increasing in size because modules are portable. The  UEFI
+approach is extremely inflexible because once dbx reaches a certain size, the
+on-board flash chips will not be able to store the full revocation list.</p>
+<p>Revocation usually rears its ugly head after the initial system design:
+If Alice revokes their identity, how does an offline Bob receive that
+revocation locally? Is it possible for Eve to kick Bob offline to exploit
+a cached identity? How does a user revoke their identity if they have lost
+access to their identity? These are crucial questions which are not always
+obvious when designers create an initial protocol but quickly become major
+roadblocks.</p>
+<p>As an aside: revocation also adds more implementation complexity, as evidenced
+by the myriad of HTTPS clients that fail to check the certificate properly:</p>
+<pre style="background-color:#ffffff;">
+<span style="color:#323232;">config </span><span style="font-weight:bold;color:#a71d5d;">:= &amp;</span><span style="color:#323232;">tls.Config{
+</span><span style="color:#323232;">    VerifyConnection: </span><span style="font-weight:bold;color:#a71d5d;">func</span><span style="color:#323232;">(cs tls.ConnectionState) </span><span style="font-weight:bold;color:#a71d5d;">error </span><span style="color:#323232;">{
+</span><span style="color:#323232;">        opts </span><span style="font-weight:bold;color:#a71d5d;">:=</span><span style="color:#323232;"> x509.VerifyOptions{
+</span><span style="color:#323232;">            DNSName: cs.ServerName,
+</span><span style="color:#323232;">            Intermediates: x509.NewCertPool(),
+</span><span style="color:#323232;">        }
+</span><span style="color:#323232;">        </span><span style="font-weight:bold;color:#a71d5d;">for </span><span style="color:#323232;">_, cert </span><span style="font-weight:bold;color:#a71d5d;">:= range</span><span style="color:#323232;"> cs.PeerCertificates[</span><span style="color:#0086b3;">1</span><span style="color:#323232;">:] {
+</span><span style="color:#323232;">            opts.Intermediates.AddCert(cert)
+</span><span style="color:#323232;">        }
+</span><span style="color:#323232;">        </span><span style="font-style:italic;color:#969896;">// Verify does not check revocation!
+</span><span style="color:#323232;">        _, err </span><span style="font-weight:bold;color:#a71d5d;">:=</span><span style="color:#323232;"> cs.PeerCertificates[</span><span style="color:#0086b3;">0</span><span style="color:#323232;">].Verify(opts)
+</span><span style="color:#323232;">        </span><span style="font-weight:bold;color:#a71d5d;">return</span><span style="color:#323232;"> err
+</span><span style="color:#323232;">    },
+</span><span style="color:#323232;">}
+</span><span style="color:#323232;">dialer </span><span style="font-weight:bold;color:#a71d5d;">:=</span><span style="color:#323232;"> tls.Dialer{ Config: config };
+</span><span style="color:#323232;">conn, err </span><span style="font-weight:bold;color:#a71d5d;">:=</span><span style="color:#323232;"> dialer.Dial(</span><span style="color:#183691;">&quot;tcp&quot;</span><span style="color:#323232;">, </span><span style="color:#183691;">&quot;revoked-ecc-dv.ssl.com:443&quot;</span><span style="color:#323232;">);
+</span></pre>
+</code></pre>
+<p>This snippet will successfully connect on Linux but will fail on Darwin,
+Windows, and iOS (<a href="https://pkg.go.dev/crypto/x509#Certificate.Verify"><code>Certificate.Verify</code></a>
+will perform undocumented rudimentary validity checks on these platforms).
+However, the necessity of certificate revocation is somewhat
+<a href="https://www.imperialviolet.org/2014/04/19/revchecking.html">controversial</a>.
+Despite this, other instances of revocation <em>are crucial</em> to avoid users from
+interacting with compromised or impersonated identities.</p>
+<h3>Key Distribution</h3>
+<p>Once a protocol has defined identities then the protocol must distribute those
+information using those identities, often to establish a secure channel.
+However, key distribution has a host of subtlties regarding privacy and
+legality. The key exchange must be authenticated to prevent an active attacker
+from intercepting all communication between two parties. For example: if A and
+B are proxied by C then C can transparently view all encrypted communication.</p>
+<ol>
+<li>\(A\) sends \(g^a\) to \(C\)</li>
+<li>\(C\) sends \(g^c\) to \(A\)</li>
+<li>\(C\) sends \(g^{c’}\) to \(B\)</li>
+<li>\(B\) sends \(g^b\) to \(C\)</li>
+</ol>
+<p>The key exchange must be authenticated (called an AKE). However, an AKE can
+still pose issues affecting privacy. to demonstrate this, a key exchange may
+want to protect the identity of a party of the handshake to prevent an active
+attacker from retrieving information from a peer.</p>
+<ol>
+<li>\(A\) sends \(g^a\) to \(B\)</li>
+<li>\(B\) sends \(\left\langle g^b, B, \text{SIG}_B(\ldots)\right\rangle\) to \(A\)</li>
+<li>\(A\) sends \(\left\langle A, \text{SIG}_A(\ldots)\right\rangle\) to \(B\)</li>
+</ol>
+<p>In this scenario, an initiator A attempts to establish a handshake with B. B
+reveals its identity to A which could pose a privacy risk in certain
+applications (e.g. fingerprint peers on the Internet). However, in certain
+scenarios, this could be beneficial to protect the identity of the initiator
+(e.g. user is attempting to connect to a <em>specific</em> service). There are other
+attacks which can allow users to impersonate other identities or forge
+identities.</p>
+<p>If the key exchange uses static keys or keys fully determined by participant
+identities then an attacker can compromise this key to decrypt all future and
+prior communications. A method to add forward secrecy is to derive ephemeral
+keys for each session (e.g., FFDHE, ECDHE provide this). However, you guessed
+it, this can also be compromised if the key derivation process is not
+sufficiently random (e.g. failing to parameterise the base element in DHE,
+like <a href="https://weakdh.org/imperfect-forward-secrecy-ccs15.pdf">IKE</a>).</p>
+<h3>State Management</h3>
+<p>State management is a crucial part of an interactive process. A scheme which
+is secure under the presence of an eavesdropper may not be secure under
+multiple messages (e.g. encrypting blocks with the same AES key). Similarly,
+a more complex scheme may consist of a variety of handshakes and messages
+which, if out of order, can disrupt the state. State management can pertain
+to the session itself or individual messages within a session. The session
+state itself may include: nonces, protocol state (i.e. what messages have been
+previously received and what is expected), involved identities, etc. The
+message state may include: authentication data, conditional extensions, and
+message features.</p>
+<p>Session state can be exploited by replaying messages, sending messages out of
+order, racing messages, responding with unexpected messages, or terminating
+a protocol exchange early.</p>
+<pre style="background-color:#ffffff;">
+<span style="font-style:italic;color:#969896;"># expected state transition
+</span><span style="color:#323232;">state_transition </span><span style="font-weight:bold;color:#a71d5d;">= </span><span style="color:#323232;">{
+</span><span style="color:#323232;">    </span><span style="color:#183691;">&#39;send_ga&#39;</span><span style="color:#323232;">: </span><span style="color:#183691;">&#39;recv_gb&#39;</span><span style="color:#323232;">,
+</span><span style="color:#323232;">    </span><span style="color:#183691;">&#39;recv_gb&#39;</span><span style="color:#323232;">: </span><span style="color:#183691;">&#39;send_auth_ga&#39;</span><span style="color:#323232;">,
+</span><span style="color:#323232;">    </span><span style="color:#183691;">&#39;send_auth_ga&#39;</span><span style="color:#323232;">: </span><span style="color:#183691;">&#39;recv_auth_gb&#39;</span><span style="color:#323232;">,
+</span><span style="color:#323232;">    </span><span style="color:#183691;">&#39;recv_auth_gb&#39;</span><span style="color:#323232;">: </span><span style="color:#183691;">&#39;done&#39;</span><span style="color:#323232;">,
+</span><span style="color:#323232;">    </span><span style="font-style:italic;color:#969896;"># heartbeat message can be sent after auth to keep connection alive
+</span><span style="color:#323232;">    </span><span style="color:#183691;">&#39;heartbeat&#39;</span><span style="color:#323232;">: </span><span style="color:#183691;">&#39;done&#39;</span><span style="color:#323232;">,
+</span><span style="color:#323232;">}
+</span><span style="color:#323232;">
+</span><span style="color:#323232;">state </span><span style="font-weight:bold;color:#a71d5d;">= </span><span style="color:#183691;">&#39;send_ga&#39;
+</span><span style="font-weight:bold;color:#a71d5d;">while </span><span style="color:#323232;">sate </span><span style="font-weight:bold;color:#a71d5d;">!= </span><span style="color:#183691;">&#39;done&#39;</span><span style="color:#323232;">:
+</span><span style="color:#323232;">    </span><span style="font-style:italic;color:#969896;"># send relevant message for current state
+</span><span style="color:#323232;">    send_msg(state)
+</span><span style="color:#323232;">    </span><span style="font-style:italic;color:#969896;"># receive expected protocol response then transition
+</span><span style="color:#323232;">    response </span><span style="font-weight:bold;color:#a71d5d;">= </span><span style="color:#323232;">recv_msg(</span><span style="color:#0086b3;">...</span><span style="color:#323232;">)
+</span><span style="color:#323232;">    state </span><span style="font-weight:bold;color:#a71d5d;">= </span><span style="color:#323232;">state_transition[response.action]
+</span></pre>
+</code></pre>
+<p>If a peer responded with a heartbeat message instead of authenticating itself
+then the protocol implementation will skip over the authentication, allowing
+for “secure and authenticated” communication with the unauthenticated party.</p>
+<p>Message state can be exploited by removing or adding optional fields of a
+message. A practical example is an authenticated message with authenticated
+optional extensionss.</p>
+<pre style="background-color:#ffffff;">
+<span style="font-style:italic;color:#969896;"># Message Format
+</span><span style="font-style:italic;color:#969896;"># u8    variant
+</span><span style="font-style:italic;color:#969896;"># u8    number of extensions
+</span><span style="font-style:italic;color:#969896;"># ...   &lt;extension data&gt;
+</span><span style="font-style:italic;color:#969896;"># u256  message authentication code
+</span><span style="font-style:italic;color:#969896;"># ...   payload
+</span><span style="color:#323232;">
+</span><span style="font-style:italic;color:#969896;"># Extension Format
+</span><span style="font-style:italic;color:#969896;"># u8    variant
+</span><span style="font-style:italic;color:#969896;"># u256  message authentication code
+</span><span style="font-style:italic;color:#969896;"># ...   payload
+</span><span style="color:#323232;">
+</span><span style="color:#323232;">msg </span><span style="font-weight:bold;color:#a71d5d;">= </span><span style="color:#323232;">recv_message(</span><span style="color:#0086b3;">...</span><span style="color:#323232;">)
+</span><span style="font-style:italic;color:#969896;"># authenticate message payload and variant
+</span><span style="color:#323232;">computed_mac </span><span style="font-weight:bold;color:#a71d5d;">= </span><span style="color:#323232;">hmac(shared_key, msg.variant </span><span style="font-weight:bold;color:#a71d5d;">+ </span><span style="color:#323232;">msg.payload)
+</span><span style="font-weight:bold;color:#a71d5d;">assert</span><span style="color:#323232;">(computed_mac </span><span style="font-weight:bold;color:#a71d5d;">== </span><span style="color:#323232;">msg.hmac)
+</span><span style="color:#323232;">
+</span><span style="font-weight:bold;color:#a71d5d;">for </span><span style="color:#323232;">i </span><span style="font-weight:bold;color:#a71d5d;">in </span><span style="color:#62a35c;">range</span><span style="color:#323232;">(msg.n_extensions):
+</span><span style="color:#323232;">    extension </span><span style="font-weight:bold;color:#a71d5d;">= </span><span style="color:#323232;">msg.extensions[i]
+</span><span style="color:#323232;">    </span><span style="font-style:italic;color:#969896;"># authenticate extension payload and variant
+</span><span style="color:#323232;">    computed_mac </span><span style="font-weight:bold;color:#a71d5d;">= </span><span style="color:#323232;">hmac(shared_key, extension.variant </span><span style="font-weight:bold;color:#a71d5d;">+ </span><span style="color:#323232;">extension.payload)
+</span><span style="color:#323232;">    </span><span style="font-weight:bold;color:#a71d5d;">assert</span><span style="color:#323232;">(computed_mac </span><span style="font-weight:bold;color:#a71d5d;">== </span><span style="color:#323232;">extension.hmac)
+</span><span style="color:#323232;">    process_extension(extension)
+</span><span style="color:#323232;">
+</span><span style="color:#323232;">process_message(msg)
+</span></pre>
+</code></pre>
+<p>This message format is incredibly fragile because an attacker can modify the
+optional extensions because the field containing the number of extensions is
+not authenticated. Furhtermore, regardless of authenticating the number of
+extensions, an attacker can substitute or shuffle authenticated extensions
+because the extensions are authenticated independently. This is not a contrived
+example, this scenario was able to exploit <a href="https://ieeexplore.ieee.org/document/6148458">NFC messages</a>.</p>
+<h2>Opportunity Costs</h2>
+<p>The cost of implementing a le epic modern protocol can quickly exceed the
+benefit of using an existing protocol so keep this in mind! It is tempting
+to pick the exciting option of designing a new protocol but practicality
+should be weighed heavily. Keep it simple, stupid!</p>
+<h2>Choosing A Protocol</h2>
+<p>“Okay! If I can’t write my own protocol, what do I do?!”. The
+solution is to choose from an available protocol with proper security
+considerations, tests, and proofs. An additional bonus is that using an
+existing protocol allows you to use standardisation/whitepaper documents as
+design documentation <em>and you can use existing implementations</em>. If you cannot
+choose from an existing protocol then there are steps to securely adapt or
+construct a protocol.</p>
+<p><em>When in doubt, choose the boring stuff like TLSv1.3 or SSHv2.</em></p>
+<h3>Understand Your Needs</h3>
+<p>In order to choose a suitable protocol, you need to understand what specific
+properties you need from a protocol:</p>
+<ul>
+<li>Authentication without PSKs</li>
+<li>Authentication using PSKs</li>
+<li>Quantum secure key exchange and encryption.</li>
+<li>Multi-party key exchange and revocation.</li>
+<li>Multi-party distribution (e.g. <a href="https://en.wikipedia.org/wiki/Shamir%27s_secret_sharing">Shamir’s Secret Sharing</a>)</li>
+<li>Blind processing (e.g., <a href="https://en.wikipedia.org/wiki/Homomorphic_encryption">homomorphic encryption</a>, <a href="https://en.wikipedia.org/wiki/Zero-knowledge_proof">Zero Knowledge Proofs</a>, <a href="https://en.wikipedia.org/wiki/Blinding_(cryptography)">blinding</a>, <a href="https://en.wikipedia.org/wiki/Garbled_circuit">garbled circuits</a>).</li>
+</ul>
+<p>If an existing protocol implementation does not provide all the desired
+features then a protocol design can be adapted or implemented yourself (e.g.,
+<a href="https://www.signal.org/docs/specifications/x3dh/#the-x3dh-protocol">X3DH</a>,
+<a href="https://blog.cloudflare.com/opaque-oblivious-passwords/">OPAQUE</a>,
+<a href="/blog/2022/07/SIGMA-R.html">SIGMA-R</a>)
+It is possible to develop a secure protocol design from scratch using the
+<a href="http://noiseprotocol.org/noise.html">Noise Protocol Framework</a> and the
+<a href="https://noisesocket.org/spec/noisesocket/">NoiseSocket Protocol</a>. The Noise
+suite is a method of securely generating protocols with a set of desired
+properties (e.g. creates an AKE between two parties, protecting the responder’s
+identity). All protocols constructed using Noise are guaranteed to be secure!
+The <a href="https://noiseexplorer.com/">Noise Explorer</a> tool can generate formal
+verification models for a created protocol which assures its security
+properties.</p>
+<p>To show the ease of Noise, let’s create a protocol live! We want:</p>
+<ul>
+<li>Forward secrecy beween two unknown parties</li>
+<li>Mututal authentication with static public keys</li>
+<li>Efficient and secure symmetric encryption with a shared key</li>
+<li>Protect the identity of the responder</li>
+</ul>
+<pre style="background-color:#ffffff;">
+<span style="color:#323232;">-&gt; e
+</span><span style="color:#323232;">&lt;- e, ee
+</span><span style="color:#323232;">-&gt; s, se
+</span><span style="color:#323232;">&lt;- s, es
+</span><span style="color:#323232;">...
+</span></pre>
+</code></pre>
+<p>The following pattern will derive a shared key via DH then derive a new shared
+key using the public keys (identities) of the peers. A passive attacker is
+unable to snoop on the identity of the initiator and an active attacker is
+unable to retrieve the identity of the responder because it must authenticate
+itself first. However, an attacker can forge an authentication message if they
+are able to complete a handshake with another identity. The forgery will not
+allow the attacker to encrypt messages but could be used to implicate a user
+for interacting with another user. This example demonstrates the ease of use
+of Noise protocols and some of the footguns if you use Noise without thinking!</p>
+<p>If no existing solution exists and the protocols produced by Noise are not
+scratching that <em>business logic itch</em> then you will have to commit the
+ultimate sin of DIY (or argue with your manager about how this feature is
+impractical and a future liability). When designing a protocol, you should
+make <em>heavy use</em> of existing solutions to elements of your problem set then
+have formal audits into the security guarantees of the protocol. Formal
+verification models can create guarantees <strong>on the design of the protocol</strong>
+but the implementation itself will need additional auditing (regular fuzzing,
+manual-review, divergent fuzzing, etc).</p>
+<h3>Understand Your Choice</h3>
+<p>Even a secure and widely used protocol can have dangerous behaviours. It is
+imperative that you fully investigate all behavoiurs and “idiosyncracies” of
+the chosen protocol. For example: TLSv1.3 has a 0-RTT mode where a client
+can initiate a TLS handshake while providing information encrypted with the
+secret key of a previous session. The resumption <em>is not fully authenticated</em>
+because an attacker can replay the packet <strong>so the action must be idempotent.</strong></p>
+<pre style="background-color:#ffffff;">
+<span style="font-style:italic;color:#969896;">// Attempt to connect to hostname with reasonable parameters.
+</span><span style="font-weight:bold;color:#a71d5d;">let</span><span style="color:#323232;"> remote_addr </span><span style="font-weight:bold;color:#a71d5d;">= </span><span style="color:#183691;">&quot;google.com:443&quot;</span><span style="color:#323232;">;
+</span><span style="font-weight:bold;color:#a71d5d;">let</span><span style="color:#323232;"> server: ServerName </span><span style="font-weight:bold;color:#a71d5d;">= </span><span style="color:#183691;">&quot;google.com&quot;</span><span style="color:#323232;">.</span><span style="color:#62a35c;">try_into</span><span style="color:#323232;">().</span><span style="color:#62a35c;">expect</span><span style="color:#323232;">(</span><span style="color:#183691;">&quot;bad hostname&quot;</span><span style="color:#323232;">);
+</span><span style="font-weight:bold;color:#a71d5d;">let</span><span style="color:#323232;"> config </span><span style="font-weight:bold;color:#a71d5d;">= </span><span style="color:#323232;">{
+</span><span style="color:#323232;">    </span><span style="font-weight:bold;color:#a71d5d;">let mut</span><span style="color:#323232;"> cfg </span><span style="font-weight:bold;color:#a71d5d;">= </span><span style="color:#323232;">ClientConfig::builder()
+</span><span style="color:#323232;">        .</span><span style="color:#62a35c;">with_safe_defaults</span><span style="color:#323232;">()
+</span><span style="color:#323232;">        .</span><span style="color:#62a35c;">with_root_certificates</span><span style="color:#323232;">(certs)
+</span><span style="color:#323232;">        .</span><span style="color:#62a35c;">with_no_client_auth</span><span style="color:#323232;">();
+</span><span style="color:#323232;">    cfg.enable_early_data </span><span style="font-weight:bold;color:#a71d5d;">= </span><span style="color:#0086b3;">true</span><span style="color:#323232;">;
+</span><span style="color:#323232;">    Arc::new(cfg)
+</span><span style="color:#323232;">};
+</span><span style="color:#323232;">
+</span><span style="font-style:italic;color:#969896;">// Create TLS connection to cache Early Data PSK.
+</span><span style="font-weight:bold;color:#a71d5d;">let mut</span><span style="color:#323232;"> conn </span><span style="font-weight:bold;color:#a71d5d;">= </span><span style="color:#323232;">std::net::TcpStream::connect(remote_addr).</span><span style="color:#62a35c;">unwrap</span><span style="color:#323232;">();
+</span><span style="font-weight:bold;color:#a71d5d;">let mut</span><span style="color:#323232;"> prev </span><span style="font-weight:bold;color:#a71d5d;">= </span><span style="color:#323232;">ClientConnection::new(Arc::clone(</span><span style="font-weight:bold;color:#a71d5d;">&amp;</span><span style="color:#323232;">config), server.</span><span style="color:#62a35c;">clone</span><span style="color:#323232;">())</span><span style="font-weight:bold;color:#a71d5d;">?</span><span style="color:#323232;">;
+</span><span style="font-weight:bold;color:#a71d5d;">let mut</span><span style="color:#323232;"> stream </span><span style="font-weight:bold;color:#a71d5d;">= </span><span style="color:#323232;">Stream::new(</span><span style="font-weight:bold;color:#a71d5d;">&amp;mut</span><span style="color:#323232;"> prev, </span><span style="font-weight:bold;color:#a71d5d;">&amp;mut</span><span style="color:#323232;"> conn);
+</span><span style="color:#323232;">stream.</span><span style="color:#62a35c;">write</span><span style="color:#323232;">(</span><span style="font-weight:bold;color:#a71d5d;">b</span><span style="color:#183691;">&quot;GET / HTTP/1.0</span><span style="color:#0086b3;">\r\n\r\n</span><span style="color:#183691;">&quot;</span><span style="color:#323232;">).</span><span style="color:#62a35c;">unwrap</span><span style="color:#323232;">();
+</span><span style="font-weight:bold;color:#a71d5d;">let mut</span><span style="color:#323232;"> buf </span><span style="font-weight:bold;color:#a71d5d;">= </span><span style="color:#0086b3;">Vec</span><span style="color:#323232;">::new();
+</span><span style="color:#323232;">stream.</span><span style="color:#62a35c;">read</span><span style="color:#323232;">(</span><span style="font-weight:bold;color:#a71d5d;">&amp;mut</span><span style="color:#323232;"> buf).</span><span style="color:#62a35c;">unwrap</span><span style="color:#323232;">();
+</span><span style="color:#323232;">core::mem::drop(prev);
+</span><span style="color:#323232;">core::mem::drop(conn);
+</span><span style="color:#323232;">
+</span><span style="font-style:italic;color:#969896;">// Create a second connection which can use the PSK.
+</span><span style="font-weight:bold;color:#a71d5d;">let mut</span><span style="color:#323232;"> conn </span><span style="font-weight:bold;color:#a71d5d;">= </span><span style="color:#323232;">std::net::TcpStream::connect(remote_addr).</span><span style="color:#62a35c;">unwrap</span><span style="color:#323232;">();
+</span><span style="font-weight:bold;color:#a71d5d;">let mut</span><span style="color:#323232;"> client </span><span style="font-weight:bold;color:#a71d5d;">= </span><span style="color:#323232;">ClientConnection::new(Arc::clone(</span><span style="font-weight:bold;color:#a71d5d;">&amp;</span><span style="color:#323232;">config), server)</span><span style="font-weight:bold;color:#a71d5d;">?</span><span style="color:#323232;">;
+</span><span style="font-style:italic;color:#969896;">// Attempt to send 0-RTT payload.
+</span><span style="font-weight:bold;color:#a71d5d;">if let </span><span style="color:#0086b3;">Some</span><span style="color:#323232;">(</span><span style="font-weight:bold;color:#a71d5d;">mut</span><span style="color:#323232;"> writer) </span><span style="font-weight:bold;color:#a71d5d;">=</span><span style="color:#323232;"> client.</span><span style="color:#62a35c;">early_data</span><span style="color:#323232;">() {
+</span><span style="color:#323232;">    writer.</span><span style="color:#62a35c;">write</span><span style="color:#323232;">(</span><span style="font-weight:bold;color:#a71d5d;">b</span><span style="color:#183691;">&quot;GET / HTTP/1.0</span><span style="color:#0086b3;">\r\n</span><span style="color:#183691;">Early-Data: 1</span><span style="color:#0086b3;">\r\n\r\n</span><span style="color:#183691;">&quot;</span><span style="color:#323232;">).</span><span style="color:#62a35c;">unwrap</span><span style="color:#323232;">();
+</span><span style="color:#323232;">} </span><span style="font-weight:bold;color:#a71d5d;">else </span><span style="color:#323232;">{
+</span><span style="color:#323232;">    panic!(</span><span style="color:#183691;">&quot;Server does not accept early data.&quot;</span><span style="color:#323232;">)
+</span><span style="color:#323232;">}
+</span><span style="font-style:italic;color:#969896;">// Retrieve response from server.
+</span><span style="font-weight:bold;color:#a71d5d;">let mut</span><span style="color:#323232;"> stream </span><span style="font-weight:bold;color:#a71d5d;">= </span><span style="color:#323232;">Stream::new(</span><span style="font-weight:bold;color:#a71d5d;">&amp;mut</span><span style="color:#323232;"> client, </span><span style="font-weight:bold;color:#a71d5d;">&amp;mut</span><span style="color:#323232;"> conn);
+</span><span style="font-weight:bold;color:#a71d5d;">let mut</span><span style="color:#323232;"> _buf </span><span style="font-weight:bold;color:#a71d5d;">= </span><span style="color:#323232;">vec![</span><span style="color:#0086b3;">0</span><span style="color:#323232;">; </span><span style="color:#0086b3;">100</span><span style="color:#323232;">]; </span><span style="font-style:italic;color:#969896;">// read_to_end closes connection?
+</span><span style="color:#323232;">stream.</span><span style="color:#62a35c;">read</span><span style="color:#323232;">(</span><span style="font-weight:bold;color:#a71d5d;">&amp;mut</span><span style="color:#323232;"> buf).</span><span style="color:#62a35c;">unwrap</span><span style="color:#323232;">();
+</span></pre>
+</code></pre>
+<p>This example is safe because <code>GET /</code> is <em>generally</em> idempotent but if we had
+a RESTful API or the early data was an action then the early data payload could
+be replayed or delivered out-of-order. If you are interested, <a href="https://blog.trailofbits.com/2019/03/25/what-application-developers-need-to-know-about-tls-early-data-0rtt/">this post</a>
+goes into more detail about 0-RTT footguns. To mitigate this, some applications
+will include an “Early Data cookie”, similar to a CSRF token where the request
+must have a matching value. Alternatively, Early Data can be disabled outright.</p>
+<p>Other choices can have <a href="https://soatok.blog/2020/11/27/the-subtle-hazards-of-real-world-cryptography/">devastating consequences</a>. For example: “encryptment” is a property
+where encryption authenticates the ciphertext and the key it was encrypted
+with. A scheme lacking encryptment (AESGCM, ChaCha20Poly1305) is vulnerable to
+Multi-Key Collision Resistance (MKCR) attacks. MKCR is most famously
+demonstrated in Facebook as <a href="https://eprint.iacr.org/2019/016">Invisible Salamanders</a>
+but has also cropped up in <a href="https://breakingthe3ma.app/">Threema</a>. In summary,
+MKCR allows multiple authenticated ciphertexts to successfully decrypted under
+multiple keys. This allows users to send messages which decrypt to different
+users or brute-force multiple keys simultaneously against a decryption oracle.</p>
+<p>Other protocols may have <a href="https://soatok.blog/2021/07/30/canonicalization-attacks-against-macs-and-signatures/">canonicalization attacks</a> and other subtlties which can break
+your applications. You should read <em>all usage guidance</em> on your chosen
+protocol, this includes RFCs, NIST guidance, and occasionally research papers.</p>
+<p>The protocol choice should have room for flexibility, <em>regardless of current
+plans</em> because you will likely need to change to a new ciphersuite for
+compliance reasons or in response to a vulnerability disclosure. Flexibility
+is a subtle art but has been explained pretty <a href="https://soatok.blog/2022/08/20/cryptographic-agility-and-superior-alternatives/">thoroughly</a> (or furr-ily, hah!).</p>
+<h2>Closing Thoughts</h2>
+<p>If you choose to implement or adapt a protocol then you should have opinions
+from cryptographers and other developers to ensure the protocol is both secure
+and usable. Provable security takes many forms, one is a framework like
+<a href="https://bblanche.gitlabpages.inria.fr/proverif/">ProVerif</a> formally verifies
+the secrecy and authentication of the protocol. You should also be aware of
+existing research into breaking popular protocols (I see a <em>lot</em> of interactive
+protocols with plaintext compression which can leak plaintext).</p>
+<p>And whatever you do, for God’s sake, don’t <em>ever</em> roll your own primitives.</p>
+</article>
+</body>
+<footer>updated: 2023-01-22</footer>
+</html>
+
