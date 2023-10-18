@@ -1,7 +1,8 @@
-- 2022-08-04
+- 2023-10-18
 - blog
 
 List of articles:
+- [Comparing Binary Diffing](blog/2023/10/binary-differences)
 - [Rolling Your Own Cyrpto](/blog/2023/01/rolling-your-own-crypto)
 - [SIGMA-R](/blog/2022/07/SIGMA-R)
 - [AES-GCM Misuse](/blog/2022/07/AES-GCM-misuse)

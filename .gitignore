@@ -1,3 +1,6 @@
 syntaxes
 style.css
 builder
+assets/*.png
+**/.DS_Store
+.obsidian
