@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>KVM is Quality Software</title>
 </head>
 <style>
@@ -16,6 +17,12 @@ body {
     overflow-wrap: normal;
     max-width: 80%;
     margin: 0 auto 0 auto;
+}
+
+table, th {
+    border: 1px solid #000;
+    border-collapse: collapse;
+    padding: 10px;
 }
 
 img {
@@ -172,7 +179,7 @@ blockquote {
 <h2>Debugging a Type-1 Hypervisor</h2>
 <p>My type-1 hypervisor requires a different setup since I am building a PE image then loading it as an <a href="https://edk2-docs.gitbook.io/edk-ii-module-writer-s-guide/8_dxe_drivers_non-uefi_drivers/88_dxe_runtime_driver">EFI DXE driver</a>. I have a script which builds my module within <a href="https://github.com/tianocore/edk2">EDK2</a> then spawns a VM using QEMU with KVM acceleration. A shortened snippet of the script is listed below.</p>
 <pre style="background-color:#ffffff;">
-<span style="font-style:italic;color:#969896;">#!/bin/sh
+<span style="font-style:italic;color:#969896;">#!/bin/</span><span style="font-style:italic;color:#0086b3;">sh
 </span><span style="color:#323232;">
 </span><span style="font-style:italic;color:#969896;"># ignore
 </span><span style="font-style:italic;color:#969896;"># ...
