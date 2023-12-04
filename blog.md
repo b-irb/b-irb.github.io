@@ -1,7 +1,8 @@
-- 2023-11-22
+- 2023-12-04
 - blog
 
 List of articles:
+- _2023._ [Flaws with ICS Honeypots](/blog/2023/12/ics-honeypot-flaws)
 - _2023._ [UEFI APT? UEFI APT!](/blog/2023/02/UEFI-APT)
 - _2023._ [Hacking Bristol for Fun and Profit](/blog/2023/09/hacking-bristol)
 - _2023._ [Comparing Binary Diffing](/blog/2023/10/binary-differences)
