@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Flaws with ICS Honeypots</title>
+</head>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Fira+Mono&display=swap');
+
+footer {
+    font-size: 0.7em;
+}
+
+body {
+    font: 1em "Arial", sans-serif;
+    overflow-wrap: normal;
+    max-width: 80%;
+    margin: 0 auto 0 auto;
+}
+
+table, th {
+    border: 2px solid #000;
+    border-collapse: collapse;
+    padding: 10px;
+}
+
+table tr {
+    border-style: dotted;
+}
+
+table td {
+    border-left: 2px solid #000;
+    border-right: 2px solid #000;
+    padding: 5px;
+}
+
+tbody tr:nth-child(odd) {
+    background-color: #dcdde0;
+}
+
+img {
+    max-width: 100%;
+}
+
+pre, code {
+    font-size: 0.9em;
+    font-family: 'Fira Mono', monospace;
+}
+
+nav ul {
+    list-style: none;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    padding: 0px;
+    flex-shrink: 0;
+}
+
+nav ul li {
+    margin-right: 20px;
+}
+
+blockquote {
+    margin-left: 5px;
+    padding-left: 15px;
+    border-left: 3px solid #ccc;
+}
+
+</style>
+<body>
+<nav>
+    <ul>
+        <li><a href="/">Index</a></li>
+        <li><a href="/blog">blog</a></li>
+    </ul>
+</nav>
+<h1>Flaws with ICS Honeypots</h1>
+<article><p>Industrial Control Systems (ICS) security is extremely important because ICS
+devices are ubiquitous throughout critical infrastructure and services.
+To emphasise this, unlike core IXPs or DFZ routers which are ancillary, ICS
+devices are <em>directly</em> involved in critical processes:</p>
+<ul>
+<li>water purification</li>
+<li>petrochemical processing</li>
+<li>agriculture</li>
+<li>electric grid management</li>
+<li>etc.</li>
+</ul>
+<p>If ICS devices are compromised then critical services are immediately
+disrupted.</p>
+<h2>What do ICS devices <em>actually do</em>?</h2>
+<p>ICS devices provide a range of control and observability to human operators.
+A common ICS device are Programmable Logic Controllers (PLCs) which are
+essentially embedded computers running a proprietary RTOS hooked up to hardware
+peripherals (e.g. sensors, actuators, valves, etc.). PLCs will often provide
+remote services for an operator to observe and <em>modify</em> the state of the PLC
+(and its attached peripherals). The <em>modification of state</em> allows an operator
+to manipulate the <em>physical environment</em>.</p>
+<p>PLCs can be grouped together under a Sypervisory Control and Data Acquisition
+(SCADA) system to control and observe fleets of PLCs and other remote ICS
+devices. With this, a human operator can control a complex process involving a
+variety of devices (e.g. an entire production chain).</p>
+<h3>Real-World Example</h3>
+<p>The Siemens S7-1200 PLC is a popular (although now dated) choice for operators
+because it boasts a huge range of remote protocols: TCP, ISO-on-TCP, Step7,
+MODBUS, HTTP(S), SNMP, LLDP, NTP, ARP, etc. In addition, the S7-1200 CPUs can
+connect to multiple peripherals (e.g. 1212C has 8 and 6 digital inputs and
+outputs, respectively and 2 analog inputs).</p>
+<p>An operator can write a Ladder-Logic program for the PLC then attach hardware
+periphals to available connectors (S7-1200 can add modules with more
+connectors, memory, DSPs, etc). Then the operator can remotely interface with
+the PLC individually or setup a SCADA system to poll the device on its state.</p>
+<h2>PLC Honeypots</h2>
+<p>Honeypots are popular in academia because they allow researchers to understand
+how attackers probe for and interact with ICS devices. The honeypots generally
+aim to emulate a subset of protocols then record all network ad protocol
+interactions. Popular honeypots include:</p>
+<ul>
+<li>GasPot (succeeded by XPOT)</li>
+<li>Conpot (succeeded by S7commTrace)</li>
+<li>Honeyd</li>
+<li>HoneyPLC (succeeded by ICSpot)</li>
+<li>HoneyPhy (succeeded by ICSpot)</li>
+<li>MiniCPS</li>
+<li>CryPLH</li>
+</ul>
+<p>Honeypots can be viewed as having three core capabilities which we can tag
+honeypots as implementing (excluding honeypots with successors):</p>
+<table><thead><tr><th>Capability</th><th>Honeypot(s)</th></tr></thead><tbody>
+<tr><td>Stateful Protocols</td><td>S7commTrace, ICSpot, Honeyd</td></tr>
+<tr><td>Network Emulation</td><td>MiniCPS</td></tr>
+<tr><td>Physical Simulation</td><td>ICSpot, CryPLH, MiniCPS, XPOT</td></tr>
+</tbody></table>
+<h3>Stateful Protocols</h3>
+<p>Common protocols implemented by honeypots are HTTP(S), SNMP, S7, MODBUS, and
+ENIP. Of these, honeypots will attempt to provide all original functionality
+of the target device (e.g. all hidden webpages are accessible). However, a key
+problem with implementing these protocols are that an interactive attacker will
+expect the same <em>state transitions</em> as well as the same <em>implementation
+behaviour</em>.</p>
+<h3>Network Emulation</h3>
+<p>Honeypots are reachable over a network. A high-level protocol can be correctly
+implemented but the lower level protocols may rely on the honeypot host rather
+than an accurate emulation (e.g. TCP segmentation when sending HTTP requests).
+However, the more hops between the target and the user, the more unreliable
+these characteristics become (i.e. a network hop might reconstruct packets).
+Despite this, an attacker can heuristically determine details about the network
+stack/environment of the peer.</p>
+<h3>Physical Simulation</h3>
+<p>PLCs do not sit idle; PLCs are supposed to be <em>doing stuff</em>. If an attacker is
+able to inspect a device with no running logic or no peripherals, the device
+is either suspicious or useless from an attacker POV. An attacker will
+struggle to verify details of the physical simulation without gleaning details
+off of running logic or other channels. However, an attacker <em>can</em> assume that
+the simulation behaves realistically (i.e. constant increments in sensor
+readings).</p>
+<h2>Implementations are fundamentally flawed</h2>
+<p>All honeypot implementations make tradeoffs over the accuracy of their
+emulation against the ease of configuration. This results in behaviour being
+correct <em>but inaccurate</em>. As an example, a common approach to support the
+proprietary S7 protocol is to use Snap7, a library implementing a subset of
+S7. This is unacceptable because Snap7 does not attempt to implement the entire
+protocol nor does it attempt to mimic a real device. An attacker can rely on
+undocumented features or implementation details of the legitimate S7 stack
+to detect differences. This issue extends to other ICS protocols where the
+implementors choose 3rd-party dependencies which are not perfectly identical:
+Modbus, ENIP, ISO-on-TCP, HTTP, etc.</p>
+<p>Attempting to emulate the network layer is also exceedingly difficult because
+the networking stack of PLCs are proprietary and run on custom hardware with
+a custom RTOS. You <em>cannot</em> use a different TCP stack then hope to reconstruct
+packets to mimic a target device without a very tedious configuration process
+and a prayer that you correctly implemented all quirks. This also extends to
+side-channels like processing delays, impacts on other tasks, debugging
+interfaces tracking processor metrics, etc.</p>
+<h2>Deployments are fundamentally flawed</h2>
+<p>The first two lists are well explored in literature (with the low-level
+characteristics being frequently hand-waved away by implementors). However,
+the issues with deployment are less explored (aside from having a natural
+host appearance). From reading a variety of papers, all honeypots were hosted
+on commercial cloud providers or university networks which are trivial to
+tag as suspicious by looking at the target ASN.</p>
+<p>Instead, we should try put the honeypot on an ASN owned by a business ISP which
+is used by <em>industrial sites</em>. In addition an attacker can look at the routing
+path to see if deployers have installed a network proxy, router, or switch
+which can be suspicous because a PLC should not have a huge network path if it
+is on the public Internet.</p>
+<p>However the <em>biggest</em> flaws with <em>all</em> honeypot research I have read was the
+<em>duration of the study</em>. The majority of honeypots were deployed for under
+180 days with none spanning over 2 years. Consequently, an attacker can ignore
+all peers until they have been consistently online for over 8 months. An
+additional issue was that operators would often deploy several instances of
+the same honeypot which can be an indicator that the honeypots are either:</p>
+<ol>
+<li>Part of the same OT network.</li>
+<li>All honeypots run by the same group.</li>
+</ol>
+<p>The first scenario can be ruled out using the other networking characteristics.
+The final issue I see when looking at deployments are network neighbours. A
+network neighbour is a device on a nearby address (e.g. X.X.X.1 and X.X.X.2).
+On a large network, you might expect a <em>range</em> of addresses to be advertised to
+the wider internet. Using this assumption, an attacker can see if the
+surrounding hosts are hosting unrelated services (e.g. PLC neighbouring with
+someone’s 90s-style Internet homepage).</p>
+<h3>My 2¢</h3>
+<p>Honeypots are junk. A sophisticated attacker will detect anything less than
+genuine which is relevant because anyone targeting ICS devices will be
+sophisticated. Even worse, the attacker will be sophisticated <em>and patient</em>
+because ICS attackers will be state actors or state sponsored actors whose
+motivations (the motivations of the state) are political. Instead, more effort
+should be focused on adding instrumentation to real devices then putting those
+devices into real OT networks. Overall interactions are significantly less
+likely but the interactions that do occur will be extremely revealing in how
+an actual ICS attacker behaves.</p>
+<p>To elaborate on this, ICS attackers are not like traditional IT attackers. The
+attackers will have complex intentions (i.e. not aiming to ransomware for a
+quick buck), be experienced with working on PLCs, and will have access to
+real devices to testbed exploits and compare responses. I do not think trying
+to deceive this cohort is productive because you cannot win.</p>
+</article>
+</body>
+<footer>updated: 2023-12-03</footer>
+</html>
+

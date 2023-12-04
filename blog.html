@@ -20,9 +20,23 @@ body {
 }
 
 table, th {
-    border: 1px solid #000;
+    border: 2px solid #000;
     border-collapse: collapse;
     padding: 10px;
+}
+
+table tr {
+    border-style: dotted;
+}
+
+table td {
+    border-left: 2px solid #000;
+    border-right: 2px solid #000;
+    padding: 5px;
+}
+
+tbody tr:nth-child(odd) {
+    background-color: #dcdde0;
 }
 
 img {
@@ -64,6 +78,7 @@ blockquote {
 <h1>blog</h1>
 <article><p>List of articles:</p>
 <ul>
+<li><em>2023.</em> <a href="/blog/2023/12/ics-honeypot-flaws">Flaws with ICS Honeypots</a></li>
 <li><em>2023.</em> <a href="/blog/2023/02/UEFI-APT">UEFI APT? UEFI APT!</a></li>
 <li><em>2023.</em> <a href="/blog/2023/09/hacking-bristol">Hacking Bristol for Fun and Profit</a></li>
 <li><em>2023.</em> <a href="/blog/2023/10/binary-differences">Comparing Binary Diffing</a></li>
@@ -80,6 +95,6 @@ blockquote {
 </ul>
 </article>
 </body>
-<footer>updated: 2023-11-22</footer>
+<footer>updated: 2023-12-04</footer>
 </html>
 
