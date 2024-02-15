@@ -2,6 +2,7 @@
 - blog
 
 List of articles:
+- _2024._ [TPMs Hate Him! (Some Weird Tricks To Break FDE and Bypass Attestation)](/blog/2024/02/tpm-attack)
 - _2023._ [Flaws with ICS Honeypots](/blog/2023/12/ics-honeypot-flaws)
 - _2023._ [UEFI APT? UEFI APT!](/blog/2023/02/UEFI-APT)
 - _2023._ [Hacking Bristol for Fun and Profit](/blog/2023/09/hacking-bristol)
