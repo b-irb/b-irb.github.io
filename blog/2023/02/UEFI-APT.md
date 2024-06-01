@@ -9,7 +9,7 @@ covering how to bypass Secure Boot, Intel Boot Guard or whichever
 "le choix du jour" because bypasses for boot security technologies are pretty frequent and firmware is slow to update.
 
 I have written a very simple PoC implant for OVMF called
-[PigPEI](https://github.com/birb007/PigPEI). Pig can be used
+[PigPEI](https://github.com/b-irb/PigPEI). Pig can be used
 as a complete reference for listings in this article. If you are not interested
 in the sections about FFS or Rust toolchains then scroll until the PEI section.
 
