@@ -160,7 +160,7 @@ $$
 
 Additionally, it is possible to wrap the \\(g^x\\) and \\(g^y\\) parameters under the MAC.
 
-A pseudo-implementation is available [here](https://gist.github.com/birb007/2a1e7f3adbab34a41530037417f782d0).
+A pseudo-implementation is available [here](https://gist.github.com/b-irb/2a1e7f3adbab34a41530037417f782d0).
 
 ## Implementation Recommendations
 
