@@ -13,10 +13,18 @@ footer {
 }
 
 body {
-    font: 1em "Arial", sans-serif;
+    font: 1em "Times New Roman", serif;
+    overflow-y: scroll;
     overflow-wrap: normal;
-    max-width: 80%;
+    max-width: 100ch;
+    padding: 1em;
     margin: 0 auto 0 auto;
+}
+
+@media (max-width:641px)  {
+    body {
+        max-width: 100%;
+    }
 }
 
 table, th {
@@ -46,6 +54,7 @@ img {
 pre, code {
     font-size: 0.9em;
     font-family: 'Fira Mono', monospace;
+    background-color: #efefef;
 }
 
 nav ul {
