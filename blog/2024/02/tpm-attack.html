@@ -1,19 +1,29 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
     <title>TPMs Hate Him! (Some Weird Tricks To Break FDE and Bypass Attestation)</title>
-</head>
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Fira+Mono&display=swap');
+    <meta name="description" content="" />
+    <meta property="og:title" content="TPMs Hate Him! (Some Weird Tricks To Break FDE and Bypass Attestation)" />
+    <meta property="og:description" content="" />
+    <meta property="og:type" content="article" />
+
+    <style>
+    @font-face {
+    font-family: "Fira Mono";
+    src: url("/assets/fonts/FiraMono-Regular.woff2") format("woff2");
+    font-weight: normal;
+    font-style: normal;
+}
 
 footer {
     font-size: 0.7em;
 }
 
 body {
-    font: 1em "Times New Roman", serif;
+    font: 1em "Helvetica", "Arial", sans-serif;
     overflow-y: scroll;
     overflow-wrap: normal;
     max-width: 100ch;
@@ -52,9 +62,7 @@ img {
 }
 
 pre, code {
-    font-size: 0.9em;
     font-family: 'Fira Mono', monospace;
-    background-color: #efefef;
 }
 
 nav ul {
@@ -72,11 +80,15 @@ nav ul li {
 
 blockquote {
     margin-left: 5px;
-    padding-left: 15px;
-    border-left: 3px solid #ccc;
+    padding: 1vh 1vw;
+    border-top-right-radius: 5px;
+    border-bottom-right-radius: 5px;
+    border-left: 5px solid #ababab;
+    background-color: #e2e0e0;
 }
 
-</style>
+    </style>
+</head>
 <body>
 <nav>
     <ul>
@@ -85,8 +97,7 @@ blockquote {
     </ul>
 </nav>
 <h1>TPMs Hate Him! (Some Weird Tricks To Break FDE and Bypass Attestation)</h1>
-<article><p>These are a series of well-known attacks against TPMs used for attestation and
-full-disk-encryption. This article will describe the nature of these attacks
+<article>full-disk-encryption. This article will describe the nature of these attacks
 then demonstrate their exploitability in realistic scenarios. Several of
 these attacks are often overlooked despite fundamentally undermining the goal
 of TPMs for secret storage and attestation.</p>
@@ -120,14 +131,14 @@ measurements of events.</p>
 <p>These events are “measured” by creating a digest of some data to update a PCR.
 Crucially, all updates to PCRs are <em>iterative</em> and cannot be overwritten at
 runtime, creating a rolling hash (these are called <strong>extensions</strong>).</p>
-<pre style="background-color:#ffffff;">
+<code><pre>
 <span style="color:#323232;">pcr = Hash(pcr | &lt;digest&gt;)
 </span></pre>
-</code></pre>
+</code></code></pre>
 <p>Due to the cryptographic security of the hash functions used, a set of PCR
 values correspond to an exect sequence of events.</p>
 <p>The following is an example set of events taken from a Dell desktop.</p>
-<pre style="background-color:#ffffff;">
+<code><pre>
 <span style="color:#323232;">Event                   Digest                                      PCR (current)
 </span><span style="color:#323232;">-----                   ------                                      -------------
 </span><span style="color:#323232;">EV_S_CRTM_VERSION       c42fedad268200cb1d15f97841c344e79dae3320    0000000000000000000000000000000000000000
@@ -137,7 +148,7 @@ values correspond to an exect sequence of events.</p>
 </span><span style="color:#323232;">----------------------
 </span><span style="color:#323232;">PCR (expected)          724911c8c941446ed0727350b671ce84772da73c    724911c8c941446ed0727350b671ce84772da73c
 </span></pre>
-</code></pre>
+</code></code></pre>
 <p>If any aspect of the events change then the log will derive a different final
 PCR value.</p>
 <h3>Preventing unauthorised access to secrets</h3>
@@ -226,7 +237,7 @@ key if the state of firmware is expected. The initial setup involves:
 <li>associating an authorization policy with a PCR2 value (sealing the key)</li>
 </ol>
 <p>Then the CPU can interact with the TPM as follows:</p>
-<pre style="background-color:#ffffff;">
+<code><pre>
 <span style="font-style:italic;color:#969896;">// Transition the TPM then create an encrypted session before communicating.
 </span><span style="color:#62a35c;">tpm2_startup</span><span style="color:#323232;">(</span><span style="color:#0086b3;">CLEAR</span><span style="color:#323232;">)</span><span style="font-weight:bold;color:#a71d5d;">?</span><span style="color:#323232;">;
 </span><span style="font-weight:bold;color:#a71d5d;">let mut</span><span style="color:#323232;"> session </span><span style="font-weight:bold;color:#a71d5d;">= </span><span style="color:#62a35c;">tpm2_start_auth_session</span><span style="color:#323232;">(tpmkey, authvalue, </span><span style="color:#0086b3;">SIMPLE_HMAC</span><span style="color:#323232;">, </span><span style="font-weight:bold;color:#a71d5d;">...</span><span style="color:#323232;">)</span><span style="font-weight:bold;color:#a71d5d;">?</span><span style="color:#323232;">;
@@ -246,7 +257,7 @@ key if the state of firmware is expected. The initial setup involves:
 </span><span style="font-style:italic;color:#969896;">// The encryption key is only available when PCR2 is a specific value.
 </span><span style="font-weight:bold;color:#a71d5d;">let</span><span style="color:#323232;"> key </span><span style="font-weight:bold;color:#a71d5d;">= </span><span style="color:#62a35c;">tpm2_unseal</span><span style="color:#323232;">(</span><span style="font-weight:bold;color:#a71d5d;">&amp;mut</span><span style="color:#323232;"> session, </span><span style="color:#0086b3;">FDE_KEY</span><span style="color:#323232;">)</span><span style="font-weight:bold;color:#a71d5d;">?</span><span style="color:#323232;">;
 </span></pre>
-</code></pre>
+</code></code></pre>
 <p>If an attacker were to modify any boot code then the PCR values will not match,
 and the disk will not decrypt. Consequently, the disk is only decryptable to
 an untempered copy of the operating system, which can then further authenticate
@@ -322,17 +333,17 @@ TPM event log for a normal boot of the target using <code>tpmtool</code> on Wind
 sysfs on Linux. This may seem contrived but many devices are preconfigured by the
 manufacturer so the event log between devices are identical (aside from
 software/firmware update mismatches).</p>
-<pre style="background-color:#ffffff;">
+<code><pre>
 <span style="color:#323232;">C:\&gt; tpmtool gatherlogs C:\Users\User\Desktop\logs
 </span><span style="color:#323232;">C:\&gt; tpmtool parsetcglogs &gt; C:\Users\User\Desktop\logs\tcg.txt
 </span><span style="color:#323232;">
 </span><span style="color:#323232;">$ cp /sys/kernel/security/tpm0/binary_bios_measurements log.bin
 </span></pre>
-</code></pre>
+</code></code></pre>
 <p>Then we write a small utility that will reconfigure the TPM with the captured
 event log to arrive at a target state (unsealing the key).</p>
 <blockquote>
-<pre style="background-color:#ffffff;">
+<code><pre>
 <span style="font-weight:bold;color:#a71d5d;">struct </span><span style="color:#323232;">event {
 </span><span style="color:#323232;">    u32 pcr;
 </span><span style="color:#323232;">    </span><span style="font-weight:bold;color:#a71d5d;">struct</span><span style="color:#323232;"> tpm_digest digest;
@@ -353,7 +364,7 @@ event log to arrive at a target state (unsealing the key).</p>
 </span><span style="color:#323232;">    </span><span style="font-weight:bold;color:#a71d5d;">return </span><span style="color:#0086b3;">0</span><span style="color:#323232;">;
 </span><span style="color:#323232;">}
 </span></pre>
-</code></pre>
+</code></code></pre>
 </blockquote>
 <p><em>Note: another solution is to use the Linux utility <code>tpm2_pcrextend</code>.</em></p>
 <h3>Putting it together</h3>
@@ -396,7 +407,7 @@ state which we can extend with recorded values to unseal the VMK.</p>
 <p>To prevent the kernel from preserving the TPM state, we hook the kernel
 <a href="https://elixir.bootlin.com/linux/v6.7.4/source/drivers/char/tpm/tpm2-cmd.c#L429">functions</a> responsible for dispatching those commands with an LKM.</p>
 <blockquote>
-<pre style="background-color:#ffffff;">
+<code><pre>
 <span style="font-weight:bold;color:#a71d5d;">#ifndef</span><span style="color:#323232;"> CONFIG_X86
 </span><span style="font-weight:bold;color:#a71d5d;">#error </span><span style="color:#183691;">&quot;This module is only supported for AMD64 platforms.&quot;
 </span><span style="font-weight:bold;color:#a71d5d;">#endif
@@ -429,7 +440,7 @@ state which we can extend with recorded values to unseal the VMK.</p>
 </span><span style="color:#323232;">    pr_info(</span><span style="color:#183691;">&quot;removed hook for </span><span style="color:#0086b3;">%p</span><span style="color:#183691;">S</span><span style="color:#0086b3;">\n</span><span style="color:#183691;">&quot;</span><span style="color:#323232;">, kp.addr);
 </span><span style="color:#323232;">}
 </span></pre>
-</code></pre>
+</code></code></pre>
 </blockquote>
 <p>There are behavioural differences between Intel and AMD chipset generations
 which limits the extensiveness of our testing. However, we did do some testing
@@ -442,7 +453,7 @@ on different setups.</p>
 system enters S3 sleep with <code>TPM_Shutdown(CLEAR)</code>, PCR1-7 are filled with
 marker values. These values were <em>not measured into the TPM during the regular
 boot procedure</em> so we believe this to be a mitigation.</p>
-<pre style="background-color:#ffffff;">
+<code><pre>
 <span style="color:#323232;">root@z790-gentoo:~ # insmod tpm-acpi.ko
 </span><span style="color:#323232;">root@z790-gentoo:~ # grep &#39;&#39; /sys/class/tpm/tpm0/pcr-sha256/*
 </span><span style="color:#323232;">/sys/class/tpm/tpm0/pcr-sha256/0:68E56416B39BCA749EF9438E66C65253DD1954690E4DD67C57563C1AF9EAC785
@@ -499,7 +510,7 @@ boot procedure</em> so we believe this to be a mitigation.</p>
 </span><span style="color:#323232;">/sys/class/tpm/tpm0/pcr-sha256/22:FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
 </span><span style="color:#323232;">/sys/class/tpm/tpm0/pcr-sha256/23:0000000000000000000000000000000000000000000000000000000000000000
 </span></pre>
-</code></pre>
+</code></code></pre>
 <p>However, you can notice that PCR0 and PCR8-16 are cleared. Despite an attacker
 being able to reset these values to affect application PCRs, all default FDE
 seals against the modified PCRs. We are not entirely sure why only PCR1-7 are

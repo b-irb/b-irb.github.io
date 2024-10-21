@@ -1,19 +1,29 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
     <title>KVM is Quality Software</title>
-</head>
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Fira+Mono&display=swap');
+    <meta name="description" content="" />
+    <meta property="og:title" content="KVM is Quality Software" />
+    <meta property="og:description" content="" />
+    <meta property="og:type" content="article" />
+
+    <style>
+    @font-face {
+    font-family: "Fira Mono";
+    src: url("/assets/fonts/FiraMono-Regular.woff2") format("woff2");
+    font-weight: normal;
+    font-style: normal;
+}
 
 footer {
     font-size: 0.7em;
 }
 
 body {
-    font: 1em "Times New Roman", serif;
+    font: 1em "Helvetica", "Arial", sans-serif;
     overflow-y: scroll;
     overflow-wrap: normal;
     max-width: 100ch;
@@ -52,9 +62,7 @@ img {
 }
 
 pre, code {
-    font-size: 0.9em;
     font-family: 'Fira Mono', monospace;
-    background-color: #efefef;
 }
 
 nav ul {
@@ -72,11 +80,15 @@ nav ul li {
 
 blockquote {
     margin-left: 5px;
-    padding-left: 15px;
-    border-left: 3px solid #ccc;
+    padding: 1vh 1vw;
+    border-top-right-radius: 5px;
+    border-bottom-right-radius: 5px;
+    border-left: 5px solid #ababab;
+    background-color: #e2e0e0;
 }
 
-</style>
+    </style>
+</head>
 <body>
 <nav>
     <ul>
@@ -85,9 +97,7 @@ blockquote {
     </ul>
 </nav>
 <h1>KVM is Quality Software</h1>
-<article></li>
-</ul>
-<h1>Prelude</h1>
+<article>Prelude</h1>
 <p>This article is a bitchy, prolonged rant as the result of weeks of banging my head against tools failing to integrate and code refusing to work as expected; this is not a well written criticism of KVM. KVM (Kernel-based Vritual Machine) is a hypervisor built into the Linux Kernel which can take advantage of hardware assisted virtualisation technologies (including VT-x). The implementation of KVM can be found in the <a href="https://elixir.bootlin.com/linux/latest/source/arch/x86/kvm">Linux kernel tree</a> under the x86 branch. During a project which involved implementing my own hypervisor, I had to use a hypervisor which implemented nested VT-x. Nested VT-x is a feature for including nested hypervisors within an existing hypervisor (emulate the emulator!) which, as you can imagine, is exceedingly useful for debugging my own hypervisor. In the spirit of FOSS, I chose to use KVM with <a href="https://www.qemu.org/">QEMU</a> since KVM touts <a href="https://www.linux-kvm.org/page/Nested_Guests">Nested Guest support</a>. What ensued was a nightmare of pain and suffering which has soured my opinions on KVM for the foreseeable future for any kind of low level development.</p>
 <p>Now, before you ask, I understand that the best way to develop a low level project like a hypervisor is to have a baremetal host then use serial debugging with <a href="https://www.kernel.org/doc/html/v4.18/dev-tools/kgdb.html#using-kgdb-gdb">kdb/kgdb</a>. However, I didn’t have another viable physical host to do remote debugging. If a product is advertised to have support for a specific feature, I expect that feature to work. Although, I will admit my use-case was unorthodox so I will be lenient with issues I believe were the result of my use-case (namely, virtualising an existing system rather than booting a virtualised guest).</p>
 <h2>TL;DR</h2>
@@ -97,7 +107,7 @@ blockquote {
 <p>Initially, I was using <a href="https://wiki.archlinux.org/index.php/Libvirt"><code>libvirt</code></a> to produce virtual machines using KVM acceleration with a few additions to the XML config for remote debugging (<code>-s</code>) and nested VT-x (<code>-nested-kvm</code>) support. I had a simple script which would boot the VM with a shared folder containing a fresh build of my hypervisor (it was a <a href="https://wiki.archlinux.org/index.php/Kernel_module">LKM</a>) then would load the module. My hypervisor consisted of several stages to begin execution, one stage was initialising a CPU structure named the <a href="https://www.intel.com/content/dam/www/public/us/en/documents/manuals/64-ia-32-architectures-software-developer-vol-3c-part-3-manual.pdf">Virtual Machine Control Structure (VMCS)</a>. The initialisation of the VMCS requires setting specific fields to certain values which affect the execution of the guest, any improper values will cause the VM to fail when <code>vmlaunch</code>’d with an <em>unbelievably</em> vague indicator so any unexpected behaviour from KVM during this process is significant.</p>
 <h3>No XSAVE support</h3>
 <p>This is a behaviour that only affected my project because I was attacking an existing system. However, it was probably the hardest bug I’ve ever had the displeasure of finding a workaround for. To provide context, <code>XSAVE</code> is an extension to x86 for saving processor state to a memory region. For a guest to use <code>XSAVE</code> instructions, the “enable XSAVEs” flag in <code>VMCS_CTRL_SECONDARY_PROCESSOR_BASED_VM_EXECUTION_CONTROLS</code> must be set. However, certain fields are fixed depending on the <code>IA32_VMX_PROCBASED_CTLS2</code> MSR (hardware may not support a certain extension). I was using the below code to enable specific execution properties of the guest.</p>
-<pre style="background-color:#ffffff;">
+<code><pre>
 <span style="font-weight:bold;color:#a71d5d;">static </span><span style="color:#0086b3;">ssize_t </span><span style="font-weight:bold;color:#795da3;">setup_secondary_procbased_controls</span><span style="color:#323232;">(</span><span style="font-weight:bold;color:#a71d5d;">struct</span><span style="color:#323232;"> cpu_ctx</span><span style="font-weight:bold;color:#a71d5d;">* </span><span style="color:#323232;">cpu) {
 </span><span style="color:#323232;">    </span><span style="font-style:italic;color:#969896;">// fixed execution controls
 </span><span style="color:#323232;">    IA32_VMX_TRUE_CTLS_REGISTER policy </span><span style="font-weight:bold;color:#a71d5d;">= </span><span style="color:#323232;">{
@@ -119,7 +129,7 @@ blockquote {
 </span><span style="color:#323232;">    </span><span style="font-weight:bold;color:#a71d5d;">...
 </span><span style="color:#323232;">}
 </span></pre>
-</code></pre>
+</code></code></pre>
 <p>Within the KVM VM this outputs:</p>
 <blockquote>
 <p>XSAVE enabled=0 (policy=378ef00000000)</p>
@@ -138,7 +148,7 @@ blockquote {
 <h3>Debugging</h3>
 <p>The guest would launch successfully but then immediately trigger a <code>#UD</code> with <code>rip</code> pointing to <code>__kmalloc</code> and <code>smp_reboot_interrupt</code>. Disassembling the code listed in the panic gave nothing interesting.</p>
 <p>Code dump for <code>__kmalloc</code>:</p>
-<pre style="background-color:#ffffff;">
+<code><pre>
 <span style="color:#0086b3;">0</span><span style="font-weight:bold;color:#795da3;">:  </span><span style="color:#0086b3;">47 20 49 </span><span style="font-weight:bold;color:#795da3;">8b             rex.RXB </span><span style="font-weight:bold;color:#a71d5d;">and </span><span style="color:#62a35c;">BYTE PTR </span><span style="color:#323232;">[r9-</span><span style="color:#0086b3;">0x75</span><span style="color:#323232;">],r9b
 </span><span style="color:#0086b3;">4</span><span style="font-weight:bold;color:#795da3;">:  3f                      (bad)
 </span><span style="color:#0086b3;">5</span><span style="font-weight:bold;color:#795da3;">:  4c </span><span style="color:#0086b3;">01 </span><span style="font-weight:bold;color:#795da3;">e0                </span><span style="font-weight:bold;color:#a71d5d;">add    </span><span style="color:#323232;">rax,r12
@@ -147,9 +157,9 @@ blockquote {
 </span><span style="font-weight:bold;color:#795da3;">e:  </span><span style="color:#0086b3;">49 33 </span><span style="font-weight:bold;color:#795da3;">9f </span><span style="color:#0086b3;">70 01 00 00    </span><span style="font-weight:bold;color:#a71d5d;">xor    </span><span style="color:#323232;">rbx,</span><span style="color:#62a35c;">QWORD PTR </span><span style="color:#323232;">[r15+</span><span style="color:#0086b3;">0x170</span><span style="color:#323232;">]
 </span><span style="font-weight:bold;color:#795da3;">...
 </span></pre>
-</code></pre>
+</code></code></pre>
 <p>Code dump for <code>smp_reboot_interrupt</code>:</p>
-<pre style="background-color:#ffffff;">
+<code><pre>
 <span style="color:#0086b3;">0</span><span style="font-weight:bold;color:#795da3;">:  </span><span style="color:#0086b3;">21 31                   </span><span style="font-weight:bold;color:#a71d5d;">and    </span><span style="color:#62a35c;">DWORD PTR </span><span style="color:#323232;">[rcx],esi
 </span><span style="color:#0086b3;">2</span><span style="font-weight:bold;color:#795da3;">:  ff                      (bad)
 </span><span style="color:#0086b3;">3</span><span style="font-weight:bold;color:#795da3;">:  e8 </span><span style="color:#0086b3;">43 </span><span style="font-weight:bold;color:#795da3;">9e fd ff          </span><span style="font-weight:bold;color:#a71d5d;">call   </span><span style="color:#0086b3;">0xfffffffffffd9e4b
@@ -160,10 +170,10 @@ blockquote {
 </span><span style="color:#0086b3;">18</span><span style="font-weight:bold;color:#795da3;">: </span><span style="color:#0086b3;">75                      </span><span style="font-weight:bold;color:#795da3;">.</span><span style="color:#62a35c;">byte </span><span style="color:#0086b3;">0x75
 </span><span style="font-weight:bold;color:#795da3;">...
 </span></pre>
-</code></pre>
+</code></code></pre>
 <p>The call trace didn’t give anything particularly exciting so I tried to trace execution by writing to the kernel buffer. However, the exception was non-deterministic (from a single-threaded point of view) since repeated executions would hit a different number of writes. This meant my code was affecting something external which later caused an exception in the SMP section of the kernel, there are <strong>many</strong> possibilities. Memory corruption was the most likely candidate so breakpoints were set at points of interest within my code to view the state of the kernel thread. However, the state of the thread was fine at each breakpoint (though the number of breakpoints hit was varied based on spontaneous <code>#UD</code>s). Next, the hypervisor operation post launch was suspected (I’ll spare the details here).</p>
 <p>After several days of debugging, I began to read the kernel SMP code because none of my code appeared to be incorrect. I recalled that areas of the kernel have routines (e.g. <a href="https://elixir.bootlin.com/linux/v5.9.1/source/arch/x86/kernel/fpu/core.c#L97">FPU</a>, or <a href="https://elixir.bootlin.com/linux/v5.9.1/source/arch/x86/kernel/fpu/signal.c#L131">signal</a>) which save/restore processor state using <code>XSAVE</code> if it is available. Additionally, you can see the kernel probing <code>XSAVE</code> during early stages of boot.</p>
-<pre style="background-color:#ffffff;">
+<code><pre>
 <span style="color:#323232;">...
 </span><span style="color:#323232;">[    0.000000] KERNEL supported cpus:
 </span><span style="color:#323232;">[    0.000000]   Intel GenuineIntel
@@ -174,15 +184,15 @@ blockquote {
 </span><span style="color:#323232;">[    0.000000] x86/fpu: x87 FPU will use FXSAVE
 </span><span style="color:#323232;">...
 </span></pre>
-</code></pre>
+</code></code></pre>
 <p>To verify all instructions were consistent with the state of the system prior to virtualisation I inspected all of the VM execution controls. It was discovered that the values of <code>VMCS_CTRL_SECONDARY_PROCESSOR_BASED_VM_EXECUTION_CONTROLS</code> was different between the guest and the host system - which is to be expected since this is a virtualised guest without full hardware support. However, the VMCS execution controls disabled <code>XSAVE</code> for the running environment which had already opted to use <code>XSAVE</code> because KVM (and VirtualBox) explicitly disables “enable XSAVE” in the <code>IA32_VMX_PROCBASED_CTLS2</code> MSR. Consequently, when a preemptive context switch occured, the kernel then attempted to execute an “invalid” <code>XSAVE</code> instruction.</p>
 <p>The workaround for this was to include:</p>
-<pre style="background-color:#ffffff;">
+<code><pre>
 <span style="color:#323232;">&lt;</span><span style="color:#63a35c;">cpu </span><span style="color:#795da3;">mode</span><span style="color:#323232;">=</span><span style="color:#183691;">&quot;host-model&quot;</span><span style="color:#323232;">&gt;
 </span><span style="color:#323232;">    &lt;</span><span style="color:#63a35c;">feature </span><span style="color:#795da3;">name</span><span style="color:#323232;">=</span><span style="color:#183691;">&quot;xsave&quot; </span><span style="color:#795da3;">policy</span><span style="color:#323232;">=</span><span style="color:#183691;">&quot;disable&quot;</span><span style="color:#323232;">/&gt;
 </span><span style="color:#323232;">&lt;/</span><span style="color:#63a35c;">cpu</span><span style="color:#323232;">&gt;
 </span></pre>
-</code></pre>
+</code></code></pre>
 <p>To the <code>libvirt-manager</code> VM config so the virtualised guest was unable to use <code>XSAVE</code> instructions.</p>
 <h3>Additional Details</h3>
 <p>The “enable XSAVE” wasn’t the only control modified by KVM, additional features changed include (no features were falsely enabled):</p>
@@ -201,7 +211,7 @@ blockquote {
 <p>During VMCS initialisation I had self-inflicted pain by loading improper into certain fields. To identify what improper values had been loaded, I implemented the same consistency checks as the CPU which validates the state of the VMCS against a wide range of conditions. One of the checks is to verify all physical addresses are within the physical-address width, to get the physical-address width you query <code>CPUID.80000008H:EAX[7:0]</code>. The reported value of my host is 39 bits for a maximum physical address width whereas the guest has a value of 40, I believe this may be an off-by-one error.</p>
 <h2>Debugging a Type-1 Hypervisor</h2>
 <p>My type-1 hypervisor requires a different setup since I am building a PE image then loading it as an <a href="https://edk2-docs.gitbook.io/edk-ii-module-writer-s-guide/8_dxe_drivers_non-uefi_drivers/88_dxe_runtime_driver">EFI DXE driver</a>. I have a script which builds my module within <a href="https://github.com/tianocore/edk2">EDK2</a> then spawns a VM using QEMU with KVM acceleration. A shortened snippet of the script is listed below.</p>
-<pre style="background-color:#ffffff;">
+<code><pre>
 <span style="font-style:italic;color:#969896;">#!/bin/</span><span style="font-style:italic;color:#0086b3;">sh
 </span><span style="color:#323232;">
 </span><span style="font-style:italic;color:#969896;"># ignore
@@ -231,11 +241,11 @@ blockquote {
 </span><span style="color:#323232;">    -drive if=pflash,unit=1,format=raw,file=$WORKSPACE/OVMF_VARS.fd \
 </span><span style="color:#323232;">    -drive file=fat:rw:$WORKSPACE/virtual_fat/
 </span></pre>
-</code></pre>
+</code></code></pre>
 <p>Setting up a baremetal hypervisor is pretty similar to a type-2 hypervisor but requires more legwork since there aren’t many facilites available before <code>EVT_SIGNAL_EXIT_BOOT_SERVICES</code> is raised (i.e. until <code>ExitBootServices</code> is called).</p>
 <h3>SMP</h3>
 <p>For a core to be virtualised, it must setup its own unique CPU structures then execute <code>vmxon</code>. Therefore, to virtualise the entire processor we have to execute a startup routine for each core for which there is an <a href="https://uefi.org/sites/default/files/resources/PI_Spec_1_6.pdf"><code>EFI_MP_SERVICES_PROTOCOL</code></a> (section 13.4) protocol available. The code to use these services looks like:</p>
-<pre style="background-color:#ffffff;">
+<code><pre>
 <span style="color:#323232;">VOID
 </span><span style="color:#323232;">EFIAPI
 </span><span style="color:#323232;">HvEnvOnEachProcessor(
@@ -261,9 +271,9 @@ blockquote {
 </span><span style="color:#323232;">    </span><span style="font-weight:bold;color:#a71d5d;">...
 </span><span style="color:#323232;">}
 </span></pre>
-</code></pre>
+</code></code></pre>
 <p>The entry <code>HvCpuInitEntry</code> is an assembly stub:</p>
-<pre style="background-color:#ffffff;">
+<code><pre>
 <span style="font-weight:bold;color:#795da3;">.text
 </span><span style="font-weight:bold;color:#795da3;">ASM_PFX(HvCpuInitEntry):
 </span><span style="font-weight:bold;color:#795da3;">	pushfq
@@ -283,9 +293,9 @@ blockquote {
 </span><span style="font-weight:bold;color:#795da3;">	</span><span style="font-weight:bold;color:#a71d5d;">popfq
 </span><span style="font-weight:bold;color:#795da3;">	</span><span style="font-weight:bold;color:#a71d5d;">ret
 </span></pre>
-</code></pre>
+</code></code></pre>
 <p>Simple, right? No. I have no idea why but KVM bricked itself depending on the number of APs available. If I attempted to execute QEMU with <code>-cores=3</code> instead of <code>-cores=2</code>, KVM would hang indefinitely. The APs were enabled then launched to an invalid address (the addess was noncanonical and outside the physical-address width) which caused the APs to hang. What’s worse than 3 cores? 4! If we change <code>-cores=3</code> to <code>-cores=4</code>:</p>
-<pre style="background-color:#ffffff;">
+<code><pre>
 <span style="color:#323232;">KVM internal error. Suberror: 1
 </span><span style="color:#323232;">emulation failure
 </span><span style="color:#323232;">RAX=0000000000000008 RBX=000000003f279248 RCX=000000003df75a17 RDX=0000000000000002
@@ -309,7 +319,7 @@ blockquote {
 </span><span style="color:#323232;">EFER=0000000000000d00
 </span><span style="color:#323232;">Code=00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 &lt;ff&gt; ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
 </span></pre>
-</code></pre>
+</code></code></pre>
 <p>A definite, reportable, KVM bug. What caused it? No idea, I spent way too long trying to track it down but suddenly the bug disappeared (I think it was something to do with GCC mixing the <a href="https://docs.microsoft.com/en-us/cpp/build/x64-calling-convention?">MS ABI</a> and <a href="https://www.uclibc.org/docs/psABI-x86_64.pdf">System V ABI</a> which could be a bug in GCC itself).</p>
 <h1>AMD SVM</h1>
 <p>These bugs were discovered and written up by <a href="https://mkukri.xyz/">Máté Kukri</a> (check out his website). The AMD Secure Virtual Machine (SVM) extensions allows for the creation of encrypted VMs (encrypted virtualised guest). AMD SVMs have a different set of CPU structures, fields, but the only relevant change in terminology is that AMD SVM uses a VMCB (Virtual Machine Control Block) to set affect the execution of the guest as opposed to the VMCS used by Intel VMX.</p>
@@ -332,7 +342,7 @@ that is polling a flag in a busy loop.</li>
 <h3>No Nested Hugepages For You</h3>
 <p>AMD SVM provides a mechanism that helps hypervisors implement memory protection between host and guest called nested paging. It works by putting another set of page tables between the guest operating system’s page tables and physical memory.</p>
 <p>These “new” page tables are identical to the normal AMD64 page tables with the only difference being that user mode accessible flag always needs to be set.  When a virtual address from the guest operating system needs to be resolved the processor does a page walk with twice the depth, walking both the guest operating system’s and nested page tables. So in theorey these nested page table should support all 3 page sizes supported by AMD64, right? Well, not so fast, on an actual AMD CPU they do indeed work, but KVM is not so friendly. The following code creates an identity map using 2MiB pages:</p>
-<pre style="background-color:#ffffff;">
+<code><pre>
 <span style="color:#323232;">cur_phys </span><span style="font-weight:bold;color:#a71d5d;">= </span><span style="color:#0086b3;">0</span><span style="color:#323232;">;
 </span><span style="color:#323232;">pml4 </span><span style="font-weight:bold;color:#a71d5d;">= </span><span style="color:#323232;">alloc_pages(</span><span style="color:#0086b3;">1</span><span style="color:#323232;">, </span><span style="color:#0086b3;">NULL</span><span style="color:#323232;">);
 </span><span style="color:#323232;">pdp </span><span style="font-weight:bold;color:#a71d5d;">= </span><span style="color:#323232;">alloc_pages(</span><span style="color:#0086b3;">1</span><span style="color:#323232;">, </span><span style="color:#0086b3;">NULL</span><span style="color:#323232;">);
@@ -347,9 +357,9 @@ that is polling a flag in a busy loop.</li>
 </span><span style="color:#323232;">}
 </span><span style="color:#323232;">pml4[</span><span style="color:#0086b3;">0</span><span style="color:#323232;">] </span><span style="font-weight:bold;color:#a71d5d;">= </span><span style="color:#323232;">(</span><span style="color:#0086b3;">uint64_t</span><span style="color:#323232;">) pdp </span><span style="font-weight:bold;color:#a71d5d;">| </span><span style="color:#0086b3;">7</span><span style="color:#323232;">;
 </span></pre>
-</code></pre>
+</code></code></pre>
 <p>KVM is happy with that, and the guest operating system boots fine with this as its nested page table. But then comes the 1GiB page version mapping the exact same region:</p>
-<pre style="background-color:#ffffff;">
+<code><pre>
 <span style="color:#323232;">cur_phys </span><span style="font-weight:bold;color:#a71d5d;">= </span><span style="color:#0086b3;">0</span><span style="color:#323232;">;
 </span><span style="color:#323232;">pml4 </span><span style="font-weight:bold;color:#a71d5d;">= </span><span style="color:#323232;">alloc_pages(</span><span style="color:#0086b3;">1</span><span style="color:#323232;">, </span><span style="color:#0086b3;">NULL</span><span style="color:#323232;">);
 </span><span style="color:#323232;">pdp </span><span style="font-weight:bold;color:#a71d5d;">= </span><span style="color:#323232;">alloc_pages(</span><span style="color:#0086b3;">1</span><span style="color:#323232;">, </span><span style="color:#0086b3;">NULL</span><span style="color:#323232;">);
@@ -360,7 +370,7 @@ that is polling a flag in a busy loop.</li>
 </span><span style="color:#323232;">}
 </span><span style="color:#323232;">pml4[</span><span style="color:#0086b3;">0</span><span style="color:#323232;">] </span><span style="font-weight:bold;color:#a71d5d;">= </span><span style="color:#323232;">(</span><span style="color:#0086b3;">uint64_t</span><span style="color:#323232;">) pdp </span><span style="font-weight:bold;color:#a71d5d;">| </span><span style="color:#0086b3;">7</span><span style="color:#323232;">;
 </span></pre>
-</code></pre>
+</code></code></pre>
 <p>and KVM just mysteriously locks up when the <code>vmrun</code> instruction is executed with no error message or any kind of crash. Sadly I haven’t managed to find the root cause of this issue.</p>
 <h1>Conclusion?</h1>
 <p>I could easily expand this to include rants about the working Linux Kernel tree (it has a <em>lot</em> of duplicated APIs and inconsistent definitions) or GDB (it’s on HP printer levels of consistently inconsistent). However, KVM caused the most difficulty for me because it affected my project at the lowest levels. Don’t take this too seriously, KVM is fine but the nested guest support is untrustworthy.</p>

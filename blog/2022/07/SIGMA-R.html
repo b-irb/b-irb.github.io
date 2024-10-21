@@ -1,19 +1,29 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
     <title>SIGMA-R</title>
-</head>
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Fira+Mono&display=swap');
+    <meta name="description" content="" />
+    <meta property="og:title" content="SIGMA-R" />
+    <meta property="og:description" content="" />
+    <meta property="og:type" content="article" />
+
+    <style>
+    @font-face {
+    font-family: "Fira Mono";
+    src: url("/assets/fonts/FiraMono-Regular.woff2") format("woff2");
+    font-weight: normal;
+    font-style: normal;
+}
 
 footer {
     font-size: 0.7em;
 }
 
 body {
-    font: 1em "Times New Roman", serif;
+    font: 1em "Helvetica", "Arial", sans-serif;
     overflow-y: scroll;
     overflow-wrap: normal;
     max-width: 100ch;
@@ -52,9 +62,7 @@ img {
 }
 
 pre, code {
-    font-size: 0.9em;
     font-family: 'Fira Mono', monospace;
-    background-color: #efefef;
 }
 
 nav ul {
@@ -72,11 +80,15 @@ nav ul li {
 
 blockquote {
     margin-left: 5px;
-    padding-left: 15px;
-    border-left: 3px solid #ccc;
+    padding: 1vh 1vw;
+    border-top-right-radius: 5px;
+    border-bottom-right-radius: 5px;
+    border-left: 5px solid #ababab;
+    background-color: #e2e0e0;
 }
 
-</style>
+    </style>
+</head>
 <body>
 <nav>
     <ul>
@@ -85,19 +97,17 @@ blockquote {
     </ul>
 </nav>
 <h1>SIGMA-R</h1>
-<article><script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
-<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
-<p>SIGMA-R is a member of the <a href="https://webee.technion.ac.il/%7Ehugo/sigma-pdf.pdf">SIGMA (SIGn-and-MAc)</a>
+<article>SIGMA-R is a member of the <a href="https://webee.technion.ac.il/%7Ehugo/sigma-pdf.pdf">SIGMA (SIGn-and-MAc)</a>
 authenticated key exchange family, using Diffie-Hellman. The SIGMA family was
 used with IPSec IKE(straightforv2) and inspired early versions of TLS. This article explains the SIGMA protocol family with heavy references to the <a href="https://webee.technion.ac.il/%7Ehugo/sigma.html">SIGMA presentation</a>.</p>
 <p>It is not to be confused with <a href="https://crypto.stanford.edu/cs355/19sp/lec6.pdf">sigma protocols</a>.</p>
 <h2>Primer: Diffie-Hellman</h2>
 <p>Two parties, \(A\) and \(B\), have a shared generator \(g \in G\) where \(G\) is a group and \(\forall a,b \in \mathbb{N}.\,\, g^{ab} = g^{ba}\). For FFDHE, it is important to parameterize the group and generator (<a href="https://weakdh.org/imperfect-forward-secrecy-ccs15.pdf">which many IKE servers failed to do</a>).</p>
 <p>The below command will generate custom FFDHE parameters:</p>
-<pre style="background-color:#ffffff;">
+<code><pre>
 <span style="color:#323232;">$ openssl dhparam -out dhparam 4096
 </span></pre>
-</code></pre>
+</code></code></pre>
 <p>ECDHE does not require parameterization because ECDHE uses safe curves (e.g., <a href="https://cr.yp.to/ecdh/curve25519-20060209.pdf">Curve25519</a> or <a href="https://safecurves.cr.yp.to/">others</a>).</p>
 <p>$$
 \begin{eqnarray*}
@@ -180,11 +190,11 @@ $$</p>
 \end{eqnarray*}
 $$</p>
 <p>With the same constraints as the basic SIGMA handshake. However, it is crucial that if it is valid for A to exchange a key with itself then the MAC <strong>must be</strong> bound to an identity specific value to prevent reflection attacks.</p>
-<pre style="background-color:#ffffff;">
+<code><pre>
 <span style="color:#323232;">initiator_mac_key </span><span style="font-weight:bold;color:#a71d5d;">= </span><span style="color:#323232;">HKDF(hashes.SHA256(), info</span><span style="font-weight:bold;color:#a71d5d;">=b</span><span style="color:#183691;">&quot;initiator mac key&quot;</span><span style="color:#323232;">, </span><span style="color:#0086b3;">...</span><span style="color:#323232;">).derive(shared_key)
 </span><span style="color:#323232;">responder_mac_key </span><span style="font-weight:bold;color:#a71d5d;">= </span><span style="color:#323232;">HKDF(hashes.SHA256(), info</span><span style="font-weight:bold;color:#a71d5d;">=b</span><span style="color:#183691;">&quot;responder mac key&quot;</span><span style="color:#323232;">, </span><span style="color:#0086b3;">...</span><span style="color:#323232;">).derive(shared_key)
 </span></pre>
-</code></pre>
+</code></code></pre>
 <h4>Combined MAC and Signature</h4>
 <p>It is possible to reduce the message size by including the MAC under the signature (the MAC can be calculated by the recipient).</p>
 <p>$$

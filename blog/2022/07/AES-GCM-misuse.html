@@ -1,19 +1,29 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
     <title>AES-GCM Misuse</title>
-</head>
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Fira+Mono&display=swap');
+    <meta name="description" content="" />
+    <meta property="og:title" content="AES-GCM Misuse" />
+    <meta property="og:description" content="" />
+    <meta property="og:type" content="article" />
+
+    <style>
+    @font-face {
+    font-family: "Fira Mono";
+    src: url("/assets/fonts/FiraMono-Regular.woff2") format("woff2");
+    font-weight: normal;
+    font-style: normal;
+}
 
 footer {
     font-size: 0.7em;
 }
 
 body {
-    font: 1em "Times New Roman", serif;
+    font: 1em "Helvetica", "Arial", sans-serif;
     overflow-y: scroll;
     overflow-wrap: normal;
     max-width: 100ch;
@@ -52,9 +62,7 @@ img {
 }
 
 pre, code {
-    font-size: 0.9em;
     font-family: 'Fira Mono', monospace;
-    background-color: #efefef;
 }
 
 nav ul {
@@ -72,11 +80,15 @@ nav ul li {
 
 blockquote {
     margin-left: 5px;
-    padding-left: 15px;
-    border-left: 3px solid #ccc;
+    padding: 1vh 1vw;
+    border-top-right-radius: 5px;
+    border-bottom-right-radius: 5px;
+    border-left: 5px solid #ababab;
+    background-color: #e2e0e0;
 }
 
-</style>
+    </style>
+</head>
 <body>
 <nav>
     <ul>
@@ -85,8 +97,7 @@ blockquote {
     </ul>
 </nav>
 <h1>AES-GCM Misuse</h1>
-<article><p>This article showcases several, realistic, vulnerabilities associated with AES-GCM. The vulnerabilities are:</p>
-<ul>
+<article><ul>
 <li>key exchange</li>
 <li>nonce reuse: plaintext recovery</li>
 <li>nonce reuse: hash subkey recovery</li>
@@ -95,7 +106,7 @@ blockquote {
 </ul>
 <h2>Key Exchange</h2>
 <p>A necessary step for unknown peers to securely communicate is to derive a shared secret which cannot be determined by an eavesdropper. Typically, (EC)DHE is used to accomplish this.</p>
-<pre style="background-color:#ffffff;">
+<code><pre>
 <span style="font-weight:bold;color:#a71d5d;">from </span><span style="color:#323232;">cryptography.hazmat.primitives.asymmetric </span><span style="font-weight:bold;color:#a71d5d;">import </span><span style="color:#323232;">x25519
 </span><span style="color:#323232;">
 </span><span style="color:#323232;">sk </span><span style="font-weight:bold;color:#a71d5d;">= </span><span style="color:#323232;">x25519.X25519PrivateKey.generate()
@@ -105,10 +116,10 @@ blockquote {
 </span><span style="color:#323232;">
 </span><span style="color:#323232;">dh_secret </span><span style="font-weight:bold;color:#a71d5d;">= </span><span style="color:#323232;">sk.exchange(peer_pk)
 </span></pre>
-</code></pre>
+</code></code></pre>
 <p>However, a common mistake is directly using <code>dh_secret</code> as an encryption key. Using the shared secret directly is less secure because <code>dh_secret</code> is a <strong>random group element</strong> instead of a random bit-string. In other words, there is structure in the value of <code>dh_secret</code> because group members have constraints (e.g., the subgroup of even integers will never have LSB set). Consequently, you will reduce the bit security of your encryption key.</p>
 <p>To securely derive an encryption key, the shared secret should be passed to a suitable KDF.</p>
-<pre style="background-color:#ffffff;">
+<code><pre>
 <span style="font-weight:bold;color:#a71d5d;">from </span><span style="color:#323232;">cryptography.hazmat.primitives </span><span style="font-weight:bold;color:#a71d5d;">import </span><span style="color:#323232;">hashes
 </span><span style="font-weight:bold;color:#a71d5d;">from </span><span style="color:#323232;">cryptography.hazmat.primitives.kdf.hkdf </span><span style="font-weight:bold;color:#a71d5d;">import </span><span style="color:#0086b3;">HKDF
 </span><span style="color:#323232;">
@@ -117,12 +128,12 @@ blockquote {
 </span><span style="font-style:italic;color:#969896;"># omit a salt or use a salt to &quot;spruce up&quot; randomness
 </span><span style="color:#323232;">key </span><span style="font-weight:bold;color:#a71d5d;">= </span><span style="color:#323232;">HKDF(hashes.SHA256(), length</span><span style="font-weight:bold;color:#a71d5d;">=</span><span style="color:#0086b3;">32</span><span style="color:#323232;">, salt, info</span><span style="font-weight:bold;color:#a71d5d;">=b</span><span style="color:#183691;">&quot;encryption key&quot;</span><span style="color:#323232;">)
 </span></pre>
-</code></pre>
+</code></code></pre>
 <p>A caveat here is to make sure <a href="https://soatok.blog/2021/11/17/understanding-hkdf/">HKDF is parameterized correctly</a> to guarantee KDF security instead of PRF security (which is not suitable here since we do not have a uniformly random bit-string).</p>
 <p>An Additional caveat is that vanilla (EC)DHE is insecure because it does not authenticate the parties. Instead, you should use an Authenticated Key Exchange (AKE) to protect against an active attacker.</p>
 <h2>Nonce Reuse: Plaintext Recovery</h2>
 <p>AES-GCM is (in)famously brittle with respect to its nonces. It is <em>imperative</em> that the nonce is never reused with the same key otherwise plaintext recovery and ciphertext forgery is possible.</p>
-<pre style="background-color:#ffffff;">
+<code><pre>
 <span style="font-weight:bold;color:#a71d5d;">from </span><span style="color:#323232;">cryptography.hazmat.primitives.ciphers.aead </span><span style="font-weight:bold;color:#a71d5d;">import </span><span style="color:#0086b3;">AESGCM
 </span><span style="color:#323232;">
 </span><span style="color:#323232;">key </span><span style="font-weight:bold;color:#a71d5d;">= </span><span style="color:#323232;">AESGCM.generate_key(bit_length</span><span style="font-weight:bold;color:#a71d5d;">=</span><span style="color:#0086b3;">128</span><span style="color:#323232;">)
@@ -135,38 +146,38 @@ blockquote {
 </span><span style="color:#323232;">send(cipher.encrypt(nonce, data</span><span style="font-weight:bold;color:#a71d5d;">=</span><span style="color:#323232;">note1, associated_data</span><span style="font-weight:bold;color:#a71d5d;">=</span><span style="color:#0086b3;">None</span><span style="color:#323232;">))
 </span><span style="color:#323232;">send(cipher.encrypt(nonce, data</span><span style="font-weight:bold;color:#a71d5d;">=</span><span style="color:#323232;">note2, associated_data</span><span style="font-weight:bold;color:#a71d5d;">=</span><span style="color:#0086b3;">None</span><span style="color:#323232;">))
 </span></pre>
-</code></pre>
+</code></code></pre>
 <p>A passive attacker will capture the two messages over the wire.</p>
-<pre style="background-color:#ffffff;">
+<code><pre>
 <span style="color:#323232;">message1 </span><span style="font-weight:bold;color:#a71d5d;">= b</span><span style="color:#183691;">&quot;</span><span style="color:#0086b3;">\xb0\xa5</span><span style="color:#183691;">(Dy</span><span style="color:#0086b3;">\xd4\x83</span><span style="color:#183691;">k</span><span style="color:#0086b3;">\xcf\x1d</span><span style="color:#183691;">u</span><span style="color:#0086b3;">\xc5</span><span style="color:#183691;">pw...&quot;
 </span><span style="color:#323232;">message2 </span><span style="font-weight:bold;color:#a71d5d;">= b</span><span style="color:#183691;">&quot;</span><span style="color:#0086b3;">\xc3\xd0</span><span style="color:#183691;">X!</span><span style="color:#0086b3;">\x0b\xf4\xf0\x0e\xac</span><span style="color:#183691;">o</span><span style="color:#0086b3;">\x10</span><span style="color:#183691;">...&quot;
 </span><span style="color:#323232;">
 </span><span style="color:#62a35c;">print</span><span style="color:#323232;">(</span><span style="color:#0086b3;">bytes</span><span style="color:#323232;">(</span><span style="color:#62a35c;">map</span><span style="color:#323232;">(</span><span style="font-weight:bold;color:#a71d5d;">lambda </span><span style="color:#323232;">x: x[</span><span style="color:#0086b3;">0</span><span style="color:#323232;">] </span><span style="font-weight:bold;color:#a71d5d;">^ </span><span style="color:#323232;">x[</span><span style="color:#0086b3;">1</span><span style="color:#323232;">], </span><span style="color:#62a35c;">zip</span><span style="color:#323232;">(message1, message2))))
 </span></pre>
-</code></pre>
+</code></code></pre>
 <p>Which will output the message! (the trailing data is the authentication tag).</p>
-<pre style="background-color:#ffffff;">
+<code><pre>
 <span style="color:#323232;">b&#39;super secret message?\x82X\xba5\xd4\xcc\xca\xbf...&#39;
 </span></pre>
-</code></pre>
+</code></code></pre>
 <p>This is due to how AES-GCM is constructed, which is AES-CTR with GCM slapped on.</p>
 <p><img src="data:image/webp;base64,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" alt="AES-GCM" /></p>
 <p>The diagram does not include the GHASH components because it is irrelevant here. AES-GCM will create one-time-pad for each plaintext block by appending a 32-bit incrementing counter to the input IV, which is encrypted with AES using the secret key. Then the one-time-pad is xor-d with its associated plaintext block to encrypt it.</p>
 <p>The critical flaw with nonce reuse is that the one-time-pads become identical:</p>
-<pre style="background-color:#ffffff;">
+<code><pre>
 <span style="color:#323232;">ciphertext_a </span><span style="font-weight:bold;color:#a71d5d;">= </span><span style="color:#323232;">pad </span><span style="font-weight:bold;color:#a71d5d;">^ </span><span style="color:#323232;">plaintext_a
 </span><span style="color:#323232;">ciphertext_b </span><span style="font-weight:bold;color:#a71d5d;">= </span><span style="color:#323232;">pad </span><span style="font-weight:bold;color:#a71d5d;">^ </span><span style="color:#323232;">plaintext_b
 </span><span style="color:#323232;">
 </span><span style="font-style:italic;color:#969896;"># pad is cancelled out
 </span><span style="font-weight:bold;color:#a71d5d;">assert </span><span style="color:#323232;">ciphertext_a </span><span style="font-weight:bold;color:#a71d5d;">^ </span><span style="color:#323232;">ciphertext_b </span><span style="font-weight:bold;color:#a71d5d;">== </span><span style="color:#323232;">plaintext_a </span><span style="font-weight:bold;color:#a71d5d;">^ </span><span style="color:#323232;">plaintext_b
 </span></pre>
-</code></pre>
+</code></code></pre>
 <p>In the attack demonstrated, we used a plaintext padded with 0s to better illustrate the attack. However, in practice it is often possible to manipulate the plaintext to include known values which can leak partial messages.</p>
 <p>An important note is this only produces the xor-d plaintexts if the nonces are identical for the blocks, <strong>including the counter</strong>.</p>
 <h2>Nonce Reuse: Hash Subkey Recovery</h2>
 <p>The previous topic showcased how nonce reuse will leak xor-d plaintexts. However, nonce reuse can allow an attacker to forge “authenticated” ciphertexts.</p>
 <p>The GCM part of AES-GCM is Galois Counter Mode which is able to compute a hash over the ciphertext and any associated data. I will not explain how Galois fields work here. The hash is given by GHASH where:</p>
-<pre style="background-color:#ffffff;">
+<code><pre>
 <span style="font-weight:bold;color:#a71d5d;">from </span><span style="color:#323232;">cryptography.hazmat.primitives.ciphers </span><span style="font-weight:bold;color:#a71d5d;">import </span><span style="color:#323232;">Cipher, modes
 </span><span style="font-weight:bold;color:#a71d5d;">from </span><span style="color:#323232;">cryptography.hazmat.primitives.ciphers.algorithms </span><span style="font-weight:bold;color:#a71d5d;">import </span><span style="color:#0086b3;">AES
 </span><span style="color:#323232;">
@@ -219,15 +230,15 @@ blockquote {
 </span><span style="color:#323232;">
 </span><span style="color:#323232;">gen_auth_tag(encrypt(</span><span style="font-weight:bold;color:#a71d5d;">b</span><span style="color:#183691;">&quot;</span><span style="background-color:#f5f5f5;font-weight:bold;color:#b52a1d;">\0</span><span style="color:#183691;">&quot; </span><span style="font-weight:bold;color:#a71d5d;">* </span><span style="color:#0086b3;">16</span><span style="color:#323232;">), </span><span style="font-weight:bold;color:#a71d5d;">b</span><span style="color:#183691;">&quot;...&quot;</span><span style="color:#323232;">, encrypt(</span><span style="font-weight:bold;color:#a71d5d;">b</span><span style="color:#183691;">&quot;secret message&quot;</span><span style="color:#323232;">))
 </span></pre>
-</code></pre>
+</code></code></pre>
 <p>This will compute a polynomial parameterized by X (the subkey) for some message.</p>
-<pre style="background-color:#ffffff;">
+<code><pre>
 <span style="color:#323232;">g(X) = X^n * Cn + X^n-1 * Cn-1 + ... + X * C1 + J
 </span><span style="color:#323232;">     = T
 </span></pre>
-</code></pre>
+</code></code></pre>
 <p>but if X (i.e., the subkey) is repeated then:</p>
-<pre style="background-color:#ffffff;">
+<code><pre>
 <span style="color:#323232;">g(X) = X^n*Cn + X^n-1*Cn-1 + ... + X*C1 + J
 </span><span style="color:#323232;">h(X) = X^n*Dn + X^n-1*Dn-1 + ... + X*D1 + J
 </span><span style="color:#323232;">
@@ -237,7 +248,7 @@ blockquote {
 </span><span style="color:#323232;">// add the polynomials and the authentication tags from two messages
 </span><span style="color:#323232;">g(X) + h(X) = X^n*(Dn + Cn) + ... + X*(D1 + C1) + g(X) + h(X) = 0
 </span></pre>
-</code></pre>
+</code></code></pre>
 <p>In this form, an attacker can solve the equation which produces possible values of the subkey. Once an attacker has derived the subkey, the attacker can forge ciphertexts.</p>
 <h2>Unlimited Message Size</h2>
 <p>If we have 2<sup>32</sup> plaintext blocks then the 32-bit counter will overflow which repeats the nonce for subsequent blocks.</p>

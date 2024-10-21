@@ -1,19 +1,29 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
     <title>Information Leakage With Struct Padding</title>
-</head>
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Fira+Mono&display=swap');
+    <meta name="description" content="" />
+    <meta property="og:title" content="Information Leakage With Struct Padding" />
+    <meta property="og:description" content="" />
+    <meta property="og:type" content="article" />
+
+    <style>
+    @font-face {
+    font-family: "Fira Mono";
+    src: url("/assets/fonts/FiraMono-Regular.woff2") format("woff2");
+    font-weight: normal;
+    font-style: normal;
+}
 
 footer {
     font-size: 0.7em;
 }
 
 body {
-    font: 1em "Times New Roman", serif;
+    font: 1em "Helvetica", "Arial", sans-serif;
     overflow-y: scroll;
     overflow-wrap: normal;
     max-width: 100ch;
@@ -52,9 +62,7 @@ img {
 }
 
 pre, code {
-    font-size: 0.9em;
     font-family: 'Fira Mono', monospace;
-    background-color: #efefef;
 }
 
 nav ul {
@@ -72,11 +80,15 @@ nav ul li {
 
 blockquote {
     margin-left: 5px;
-    padding-left: 15px;
-    border-left: 3px solid #ccc;
+    padding: 1vh 1vw;
+    border-top-right-radius: 5px;
+    border-bottom-right-radius: 5px;
+    border-left: 5px solid #ababab;
+    background-color: #e2e0e0;
 }
 
-</style>
+    </style>
+</head>
 <body>
 <nav>
     <ul>
@@ -85,9 +97,8 @@ blockquote {
     </ul>
 </nav>
 <h1>Information Leakage With Struct Padding</h1>
-<article><p>Information leakage is a common auxiliary to execute an elaborate exploit. Process memory may contain secrets, such as: passwords, encryption keys, stack canaries, pointers to other data structures, etc. Consequently, allowing an attacker to leak process memory can have significant consequences. Typically, information leakage is the result of forcing an application to output uninitialised memory (considered UB in most, sane, languages).</p>
-<p>An example of information leakage is as follows:</p>
-<pre style="background-color:#ffffff;">
+<article><p>An example of information leakage is as follows:</p>
+<code><pre>
 <span style="font-weight:bold;color:#a71d5d;">#include </span><span style="color:#183691;">&lt;stdio.h&gt;
 </span><span style="color:#323232;">
 </span><span style="font-weight:bold;color:#a71d5d;">int </span><span style="font-weight:bold;color:#795da3;">main</span><span style="color:#323232;">() {
@@ -99,15 +110,15 @@ blockquote {
 </span><span style="color:#323232;">    </span><span style="color:#62a35c;">printf</span><span style="color:#323232;">(</span><span style="color:#183691;">&quot;</span><span style="color:#0086b3;">%s\n</span><span style="color:#183691;">&quot;</span><span style="color:#323232;">, buf);
 </span><span style="color:#323232;">}
 </span></pre>
-</code></pre>
+</code></code></pre>
 <p>We allocate a buffer, <code>buf</code>, containing “junk bytes” (suppose these were leftover local variables from previous functions). Then we create a <code>miscellaneous_stack_data</code> buffer that contains a secret`. We attempt to place both buffers adjacently in memory.</p>
-<pre style="background-color:#ffffff;">
+<code><pre>
 <span style="color:#323232;">(gdb) p &amp;buf
 </span><span style="color:#323232;">$1 = (char (*)[16]) 0x7fffffffdf30
 </span><span style="color:#323232;">(gdb) p &amp;miscellaneous_stack_data
 </span><span style="color:#323232;">$2 = (char (*)[100]) 0x7fffffffdf40
 </span></pre>
-</code></pre>
+</code></code></pre>
 <p>Next, we attempt to read 16 bytes into <code>buf</code> with <code>fgets</code> then output the buffer to stdout. This looks fine but if we check the manpage for <code>fgets</code> we see:</p>
 <blockquote>
 <p>fgets() reads in at most one less than size characters from stream and stores
@@ -116,7 +127,7 @@ If a newline is read, it is stored into the buffer. A terminating null byte
 (‘\0’) is stored after the last character in the buffer.</p>
 </blockquote>
 <p>If we skim this description it looks fine, <code>fgets</code> will place a null terminator once it encounters a newline or if it reads <code>size</code> characters. However, if we read more carefully <em>Reading stops after an EOF</em>. By sending an EOF (ctrl+d on most Linux terminals), we realise <code>fgets</code> will not place a null terminator which allows us to leak the password.</p>
-<pre style="background-color:#ffffff;">
+<code><pre>
 <span style="color:#323232;">[user@beelzebub]: /tmp/tmp.zoum9Gc3En&gt;$ gcc vuln.c -Wall -Wextra -pedantic -o vuln
 </span><span style="color:#323232;">vuln.c: In function ‘main’:
 </span><span style="color:#323232;">vuln.c:6:10: warning: unused variable ‘miscellaneous_stack_data’ [-Wunused-variable]
@@ -125,10 +136,10 @@ If a newline is read, it is stored into the buffer. A terminating null byte
 </span><span style="color:#323232;">[user@beelzebub]: /tmp/tmp.zoum9Gc3En&gt;$ ./vuln
 </span><span style="color:#323232;">JUNKJUNKJUNKJUNKhunter2
 </span></pre>
-</code></pre>
+</code></code></pre>
 <p>We recieve no warnings or errors for our misuse of <code>fgets</code> but why would we? This behaviour is documented but commonly overlooked. From this example you ought to see how easy it is to accidentally leak process memory even with frequently used functions (to mitigate the above you should <code>memset</code> your buffer beforehand and ensure a null terminator is present).</p>
 <p>Now, onto structs! A struct is a way in which we combine multiple heterogeneous datatypes into a single, coherent, structure. An example is shown below.</p>
-<pre style="background-color:#ffffff;">
+<code><pre>
 <span style="font-weight:bold;color:#a71d5d;">struct </span><span style="color:#323232;">_sigma16_cpu {
 </span><span style="color:#323232;">    sigma16_reg_t regs[</span><span style="color:#0086b3;">16</span><span style="color:#323232;">];
 </span><span style="color:#323232;">    </span><span style="font-weight:bold;color:#a71d5d;">union</span><span style="color:#323232;"> sigma16_inst_variant ir;
@@ -145,9 +156,9 @@ If a newline is read, it is stored into the buffer. A terminating null byte
 </span><span style="color:#323232;">    sigma16_reg_t vect;
 </span><span style="color:#323232;">}
 </span></pre>
-</code></pre>
+</code></code></pre>
 <p>The struct, <code>_sigma16_cpu</code> has several fields (e.g. <code>pc</code>, <code>adr</code>, <code>status</code>) which can be individually accessed. To improve performance, the C compiler will attempt to align the size of the struct to the size of the largest field. However, not all the datatypes have the same size (<code>assert(sizeof(char) == sizeof(int))</code> will fail) so to properly align the struct the compiler will insert padding bytes.</p>
-<pre style="background-color:#ffffff;">
+<code><pre>
 <span style="font-weight:bold;color:#a71d5d;">#include </span><span style="color:#183691;">&lt;assert.h&gt;
 </span><span style="color:#323232;">
 </span><span style="font-weight:bold;color:#a71d5d;">struct</span><span style="color:#323232;"> C {
@@ -167,16 +178,16 @@ If a newline is read, it is stored into the buffer. A terminating null byte
 </span><span style="color:#323232;">    </span><span style="color:#62a35c;">assert</span><span style="color:#323232;">(</span><span style="font-weight:bold;color:#a71d5d;">sizeof</span><span style="color:#323232;">(c) </span><span style="font-weight:bold;color:#a71d5d;">== sizeof</span><span style="color:#323232;">(i));
 </span><span style="color:#323232;">}
 </span></pre>
-</code></pre>
+</code></code></pre>
 <p>In both structs, <code>int</code> is the largest data type which means both structs will attempt to align to it. However, <code>char</code> has a size of 1 so the compiler inserts 3 padding bytes, bringing the size of <code>struct C</code> to 8.</p>
-<pre style="background-color:#ffffff;">
+<code><pre>
 <span style="color:#323232;">[user@beelzebub]: /tmp/tmp.s3NX4aNGmq&gt;$ gcc test.c -o test
 </span><span style="color:#323232;">[user@beelzebub]: /tmp/tmp.s3NX4aNGmq&gt;$ ./test
 </span><span style="color:#323232;">[user@beelzebub]: /tmp/tmp.s3NX4aNGmq&gt;$
 </span></pre>
-</code></pre>
+</code></code></pre>
 <p>As we can see, the assertion held. In other languages the fields of a struct may be reorganised to improve structure size by reducing the amount of padding bytes required.</p>
-<pre style="background-color:#ffffff;">
+<code><pre>
 <span style="font-weight:bold;color:#a71d5d;">struct</span><span style="color:#323232;"> A {
 </span><span style="color:#323232;">    </span><span style="font-weight:bold;color:#a71d5d;">char</span><span style="color:#323232;"> x;
 </span><span style="color:#323232;">    </span><span style="font-weight:bold;color:#a71d5d;">int</span><span style="color:#323232;"> y;
@@ -189,19 +200,19 @@ If a newline is read, it is stored into the buffer. A terminating null byte
 </span><span style="color:#323232;">    </span><span style="font-weight:bold;color:#a71d5d;">int</span><span style="color:#323232;"> y;
 </span><span style="color:#323232;">}; </span><span style="font-style:italic;color:#969896;">/* sizeof(struct B) == 8 */
 </span></pre>
-</code></pre>
+</code></code></pre>
 <p>Despite having the same fields, <code>struct A</code> is larger than <code>struct B</code>. Although, if you want to remove padding entirely you can use <code>__attribute__((packed))</code>.</p>
-<pre style="background-color:#ffffff;">
+<code><pre>
 <span style="font-weight:bold;color:#a71d5d;">__attribute__</span><span style="color:#323232;">((packed)) </span><span style="font-weight:bold;color:#a71d5d;">struct</span><span style="color:#323232;"> A {
 </span><span style="color:#323232;">    </span><span style="font-weight:bold;color:#a71d5d;">char</span><span style="color:#323232;"> x;
 </span><span style="color:#323232;">    </span><span style="font-weight:bold;color:#a71d5d;">int</span><span style="color:#323232;"> y;
 </span><span style="color:#323232;">    </span><span style="font-weight:bold;color:#a71d5d;">char</span><span style="color:#323232;"> z;
 </span><span style="color:#323232;">}; </span><span style="font-style:italic;color:#969896;">/* sizeof(struct A) == 6 */
 </span></pre>
-</code></pre>
+</code></code></pre>
 <p>However, this is not a compiler directive and removing padding will make structures cache-unfriendly which will likely hamper performance.</p>
 <p>How do padding bytes replate to information leakage? Padding bytes pare not <em>safely accessible in C and may contain arbitrary memory</em>. Places where this may occur is where we write a struct by doing <code>foo(&amp;my_struct, sizeof(my_struct));</code> because you are including padding bytes. Instead, to write and read in structs, you should do it by individually accessing each field. An example application with an information leakage from struct padding is below.</p>
-<pre style="background-color:#ffffff;">
+<code><pre>
 <span style="font-weight:bold;color:#a71d5d;">#include </span><span style="color:#183691;">&lt;crypt.h&gt;
 </span><span style="font-weight:bold;color:#a71d5d;">#include </span><span style="color:#183691;">&lt;stdio.h&gt;
 </span><span style="font-weight:bold;color:#a71d5d;">#include </span><span style="color:#183691;">&lt;string.h&gt;
@@ -263,9 +274,9 @@ If a newline is read, it is stored into the buffer. A terminating null byte
 </span><span style="color:#323232;">    </span><span style="font-weight:bold;color:#a71d5d;">return </span><span style="color:#0086b3;">0</span><span style="color:#323232;">;
 </span><span style="color:#323232;">}
 </span></pre>
-</code></pre>
+</code></code></pre>
 <p>The application asks a user for their password and a salt to encrypt using <code>crypt</code>. Then the application emits the an encyption id, application version, and the encryption scheme.</p>
-<pre style="background-color:#ffffff;">
+<code><pre>
 <span style="color:#323232;">[user@beelzebub]: /tmp/tmp.eFj7oJofHA&gt;$ gcc vuln.c -lcrypt -Wall -Wextra -pedantic -o vuln
 </span><span style="color:#323232;">[user@beelzebub]: /tmp/tmp.eFj7oJofHA&gt;$ ./vuln
 </span><span style="color:#323232;">hunter2
@@ -284,9 +295,9 @@ If a newline is read, it is stored into the buffer. A terminating null byte
 </span><span style="color:#323232;">00000000: 0275 6e74 6572 320a 0000 0000 0000 0000  .unter2.........
 </span><span style="color:#323232;">00000010: 0000 0000 0000 0000                      ........
 </span></pre>
-</code></pre>
+</code></code></pre>
 <p>A chunk of the password is right there even though we wrote an unrelated piece of information to the file.</p>
-<pre style="background-color:#ffffff;">
+<code><pre>
 <span style="font-weight:bold;color:#a71d5d;">int </span><span style="font-weight:bold;color:#795da3;">save_ciphertext_info</span><span style="color:#323232;">(</span><span style="font-weight:bold;color:#a71d5d;">const char* </span><span style="color:#323232;">fname) {
 </span><span style="color:#323232;">    </span><span style="font-weight:bold;color:#a71d5d;">static int</span><span style="color:#323232;"> uid </span><span style="font-weight:bold;color:#a71d5d;">= </span><span style="color:#0086b3;">0</span><span style="color:#323232;">;
 </span><span style="color:#323232;">
@@ -301,10 +312,10 @@ If a newline is read, it is stored into the buffer. A terminating null byte
 </span><span style="color:#323232;">    </span><span style="color:#62a35c;">fclose</span><span style="color:#323232;">(save_file);
 </span><span style="color:#323232;">}
 </span></pre>
-</code></pre>
+</code></code></pre>
 <p>Why does this work? Within the application, we allocate a struct on the stack which stores sensitive information. Then, we allocate another struct on the stack within a different function body. The struct padding of our second struct overlaps the <code>key</code> field of the <code>credentials</code> struct. When we write the entire struct to a file we also write this padding field, which includes part of our password. However, first byte is overwritten by the scheme.</p>
 <p>We can inspect this overlapping by debugging the application.</p>
-<pre style="background-color:#ffffff;">
+<code><pre>
 <span style="color:#323232;">[user@beelzebub]: /tmp/tmp.eFj7oJofHA&gt;$ gdb -q vuln
 </span><span style="color:#323232;">Reading symbols from vuln...
 </span><span style="color:#323232;">(gdb) disass encrypt_user_data
@@ -395,13 +406,13 @@ If a newline is read, it is stored into the buffer. A terminating null byte
 </span><span style="color:#323232;">(gdb) p &amp;blob-&gt;scheme
 </span><span style="color:#323232;">$2 = (unsigned char *) 0x7fffffffe0d0 &quot;\002unter2\n&quot;
 </span></pre>
-</code></pre>
+</code></code></pre>
 <p>Here, gdb misinterpets the <code>unsigned char</code> datatype of <code>scheme</code> as a character array then dumps the “string”. By looking at the address of each field we see both <code>&amp;creds-&gt;key</code> and <code>&amp;blob-&gt;scheme</code> are allocated at <code>0x7fffffffe0d0</code>.</p>
 <p>While this example is contrived, it is important to consider. To mitigate this behaviour there are several approaches.</p>
 <ul>
 <li>Memset the entire struct before assigning values.</li>
 </ul>
-<pre style="background-color:#ffffff;">
+<code><pre>
 <span style="font-weight:bold;color:#a71d5d;">struct</span><span style="color:#323232;"> encrypted blob;
 </span><span style="color:#323232;">memset(</span><span style="font-weight:bold;color:#a71d5d;">&amp;</span><span style="color:#323232;">blob, </span><span style="color:#183691;">&#39;</span><span style="color:#0086b3;">\0</span><span style="color:#183691;">&#39;</span><span style="color:#323232;">, </span><span style="font-weight:bold;color:#a71d5d;">sizeof</span><span style="color:#323232;">(blob));
 </span><span style="color:#323232;">
@@ -409,11 +420,11 @@ If a newline is read, it is stored into the buffer. A terminating null byte
 </span><span style="color:#323232;">blob.uid </span><span style="font-weight:bold;color:#a71d5d;">=</span><span style="color:#323232;"> uid</span><span style="font-weight:bold;color:#a71d5d;">++</span><span style="color:#323232;">;
 </span><span style="color:#323232;">blob.version </span><span style="font-weight:bold;color:#a71d5d;">= </span><span style="color:#0086b3;">0</span><span style="color:#323232;">;
 </span></pre>
-</code></pre>
+</code></code></pre>
 <ul>
 <li>Write each field separately as mentioned previously.</li>
 </ul>
-<pre style="background-color:#ffffff;">
+<code><pre>
 <span style="font-weight:bold;color:#a71d5d;">struct</span><span style="color:#323232;"> encrypted blob </span><span style="font-weight:bold;color:#a71d5d;">= </span><span style="color:#323232;">{.scheme </span><span style="font-weight:bold;color:#a71d5d;">=</span><span style="color:#323232;"> BLOWFISH, uid </span><span style="font-weight:bold;color:#a71d5d;">=</span><span style="color:#323232;"> uid</span><span style="font-weight:bold;color:#a71d5d;">++</span><span style="color:#323232;">, .version </span><span style="font-weight:bold;color:#a71d5d;">= </span><span style="color:#0086b3;">0</span><span style="color:#323232;">};
 </span><span style="color:#323232;">
 </span><span style="font-style:italic;color:#969896;">/* snip */
@@ -421,7 +432,7 @@ If a newline is read, it is stored into the buffer. A terminating null byte
 </span><span style="color:#323232;">fwrite(</span><span style="font-weight:bold;color:#a71d5d;">&amp;</span><span style="color:#323232;">blob-&gt;uid, </span><span style="font-weight:bold;color:#a71d5d;">sizeof</span><span style="color:#323232;">(blob.uid), save_file);
 </span><span style="color:#323232;">fwrite(</span><span style="font-weight:bold;color:#a71d5d;">&amp;</span><span style="color:#323232;">blob-&gt;version, </span><span style="font-weight:bold;color:#a71d5d;">sizeof</span><span style="color:#323232;">(blob.version), save_file);
 </span></pre>
-</code></pre>
+</code></code></pre>
 </article>
 </body>
 <footer>updated: 2022-08-04</footer>

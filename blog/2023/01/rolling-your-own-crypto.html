@@ -1,19 +1,29 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
     <title>Rolling Your Own Crypto</title>
-</head>
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Fira+Mono&display=swap');
+    <meta name="description" content="" />
+    <meta property="og:title" content="Rolling Your Own Crypto" />
+    <meta property="og:description" content="" />
+    <meta property="og:type" content="article" />
+
+    <style>
+    @font-face {
+    font-family: "Fira Mono";
+    src: url("/assets/fonts/FiraMono-Regular.woff2") format("woff2");
+    font-weight: normal;
+    font-style: normal;
+}
 
 footer {
     font-size: 0.7em;
 }
 
 body {
-    font: 1em "Times New Roman", serif;
+    font: 1em "Helvetica", "Arial", sans-serif;
     overflow-y: scroll;
     overflow-wrap: normal;
     max-width: 100ch;
@@ -52,9 +62,7 @@ img {
 }
 
 pre, code {
-    font-size: 0.9em;
     font-family: 'Fira Mono', monospace;
-    background-color: #efefef;
 }
 
 nav ul {
@@ -72,11 +80,15 @@ nav ul li {
 
 blockquote {
     margin-left: 5px;
-    padding-left: 15px;
-    border-left: 3px solid #ccc;
+    padding: 1vh 1vw;
+    border-top-right-radius: 5px;
+    border-bottom-right-radius: 5px;
+    border-left: 5px solid #ababab;
+    background-color: #e2e0e0;
 }
 
-</style>
+    </style>
+</head>
 <body>
 <nav>
     <ul>
@@ -85,9 +97,7 @@ blockquote {
     </ul>
 </nav>
 <h1>Rolling Your Own Crypto</h1>
-<article><script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
-<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
-<p>We have all heard “don’t roll your own crypto” but what does it mean? Many
+<article>We have all heard “don’t roll your own crypto” but what does it mean? Many
 developers (including myself) used to think it only extended to primitives
 (Curve25519) and ciphers (AES) but the saying extends further. Yet we have to
 implement and choose cryptographic protocols for our applications! So what are
@@ -103,7 +113,7 @@ choosing!) cryptographic protocols. Below are some easy examples of common
 issues in custom schemes.</p>
 <p>In this example, we use AESGCM to securely transmit a message but there is a
 fatal flaw.</p>
-<pre style="background-color:#ffffff;">
+<code><pre>
 <span style="font-weight:bold;color:#a71d5d;">import </span><span style="color:#323232;">os
 </span><span style="font-weight:bold;color:#a71d5d;">from </span><span style="color:#323232;">cryptography.hazmat.primitives.ciphers.aead </span><span style="font-weight:bold;color:#a71d5d;">import </span><span style="color:#0086b3;">AESGCM
 </span><span style="color:#323232;">
@@ -123,7 +133,7 @@ fatal flaw.</p>
 </span><span style="color:#323232;">nonce, ct </span><span style="font-weight:bold;color:#a71d5d;">= </span><span style="color:#323232;">payload[:</span><span style="color:#0086b3;">12</span><span style="color:#323232;">], payload[</span><span style="color:#0086b3;">12</span><span style="color:#323232;">:]
 </span><span style="color:#62a35c;">print</span><span style="color:#323232;">(cipher.decrypt(nonce, data</span><span style="font-weight:bold;color:#a71d5d;">=</span><span style="color:#323232;">ct, associated_data</span><span style="font-weight:bold;color:#a71d5d;">=</span><span style="color:#323232;">nonce))
 </span></pre>
-</code></pre>
+</code></code></pre>
 <p>It is trivial for an attacker to reply valid messages for the server to
 process (there are <a href="/blog/2022/07/AES-GCM-misuse">other issues</a> too).
 Or what if we simply want to authenticate a user with the following scheme:</p>
@@ -186,7 +196,7 @@ obvious when designers create an initial protocol but quickly become major
 roadblocks.</p>
 <p>As an aside: revocation also adds more implementation complexity, as evidenced
 by the myriad of HTTPS clients that fail to check the certificate properly:</p>
-<pre style="background-color:#ffffff;">
+<code><pre>
 <span style="color:#323232;">config </span><span style="font-weight:bold;color:#a71d5d;">:= &amp;</span><span style="color:#323232;">tls.Config{
 </span><span style="color:#323232;">    VerifyConnection: </span><span style="font-weight:bold;color:#a71d5d;">func</span><span style="color:#323232;">(cs tls.ConnectionState) </span><span style="font-weight:bold;color:#a71d5d;">error </span><span style="color:#323232;">{
 </span><span style="color:#323232;">        opts </span><span style="font-weight:bold;color:#a71d5d;">:=</span><span style="color:#323232;"> x509.VerifyOptions{
@@ -204,7 +214,7 @@ by the myriad of HTTPS clients that fail to check the certificate properly:</p>
 </span><span style="color:#323232;">dialer </span><span style="font-weight:bold;color:#a71d5d;">:=</span><span style="color:#323232;"> tls.Dialer{ Config: config };
 </span><span style="color:#323232;">conn, err </span><span style="font-weight:bold;color:#a71d5d;">:=</span><span style="color:#323232;"> dialer.Dial(</span><span style="color:#183691;">&quot;tcp&quot;</span><span style="color:#323232;">, </span><span style="color:#183691;">&quot;revoked-ecc-dv.ssl.com:443&quot;</span><span style="color:#323232;">);
 </span></pre>
-</code></pre>
+</code></code></pre>
 <p>This snippet will successfully connect on Linux but will fail on Darwin,
 Windows, and iOS (<a href="https://pkg.go.dev/crypto/x509#Certificate.Verify"><code>Certificate.Verify</code></a>
 will perform undocumented rudimentary validity checks on these platforms).
@@ -262,7 +272,7 @@ message features.</p>
 <p>Session state can be exploited by replaying messages, sending messages out of
 order, racing messages, responding with unexpected messages, or terminating
 a protocol exchange early.</p>
-<pre style="background-color:#ffffff;">
+<code><pre>
 <span style="font-style:italic;color:#969896;"># expected state transition
 </span><span style="color:#323232;">state_transition </span><span style="font-weight:bold;color:#a71d5d;">= </span><span style="color:#323232;">{
 </span><span style="color:#323232;">    </span><span style="color:#183691;">&#39;send_ga&#39;</span><span style="color:#323232;">: </span><span style="color:#183691;">&#39;recv_gb&#39;</span><span style="color:#323232;">,
@@ -281,14 +291,14 @@ a protocol exchange early.</p>
 </span><span style="color:#323232;">    response </span><span style="font-weight:bold;color:#a71d5d;">= </span><span style="color:#323232;">recv_msg(</span><span style="color:#0086b3;">...</span><span style="color:#323232;">)
 </span><span style="color:#323232;">    state </span><span style="font-weight:bold;color:#a71d5d;">= </span><span style="color:#323232;">state_transition[response.action]
 </span></pre>
-</code></pre>
+</code></code></pre>
 <p>If a peer responded with a heartbeat message instead of authenticating itself
 then the protocol implementation will skip over the authentication, allowing
 for “secure and authenticated” communication with the unauthenticated party.</p>
 <p>Message state can be exploited by removing or adding optional fields of a
 message. A practical example is an authenticated message with authenticated
 optional extensionss.</p>
-<pre style="background-color:#ffffff;">
+<code><pre>
 <span style="font-style:italic;color:#969896;"># Message Format
 </span><span style="font-style:italic;color:#969896;"># u8    variant
 </span><span style="font-style:italic;color:#969896;"># u8    number of extensions
@@ -315,7 +325,7 @@ optional extensionss.</p>
 </span><span style="color:#323232;">
 </span><span style="color:#323232;">process_message(msg)
 </span></pre>
-</code></pre>
+</code></code></pre>
 <p>This message format is incredibly fragile because an attacker can modify the
 optional extensions because the field containing the number of extensions is
 not authenticated. Furhtermore, regardless of authenticating the number of
@@ -368,14 +378,14 @@ properties.</p>
 <li>Efficient and secure symmetric encryption with a shared key</li>
 <li>Protect the identity of the responder</li>
 </ul>
-<pre style="background-color:#ffffff;">
+<code><pre>
 <span style="color:#323232;">-&gt; e
 </span><span style="color:#323232;">&lt;- e, ee
 </span><span style="color:#323232;">-&gt; s, se
 </span><span style="color:#323232;">&lt;- s, es
 </span><span style="color:#323232;">...
 </span></pre>
-</code></pre>
+</code></code></pre>
 <p>The following pattern will derive a shared key via DH then derive a new shared
 key using the public keys (identities) of the peers. A passive attacker is
 unable to snoop on the identity of the initiator and an active attacker is
@@ -401,7 +411,7 @@ the chosen protocol. For example: TLSv1.3 has a 0-RTT mode where a client
 can initiate a TLS handshake while providing information encrypted with the
 secret key of a previous session. The resumption <em>is not fully authenticated</em>
 because an attacker can replay the packet <strong>so the action must be idempotent.</strong></p>
-<pre style="background-color:#ffffff;">
+<code><pre>
 <span style="font-style:italic;color:#969896;">// Attempt to connect to hostname with reasonable parameters.
 </span><span style="font-weight:bold;color:#a71d5d;">let</span><span style="color:#323232;"> remote_addr </span><span style="font-weight:bold;color:#a71d5d;">= </span><span style="color:#183691;">&quot;google.com:443&quot;</span><span style="color:#323232;">;
 </span><span style="font-weight:bold;color:#a71d5d;">let</span><span style="color:#323232;"> server: ServerName </span><span style="font-weight:bold;color:#a71d5d;">= </span><span style="color:#183691;">&quot;google.com&quot;</span><span style="color:#323232;">.</span><span style="color:#62a35c;">try_into</span><span style="color:#323232;">().</span><span style="color:#62a35c;">expect</span><span style="color:#323232;">(</span><span style="color:#183691;">&quot;bad hostname&quot;</span><span style="color:#323232;">);
@@ -438,7 +448,7 @@ because an attacker can replay the packet <strong>so the action must be idempote
 </span><span style="font-weight:bold;color:#a71d5d;">let mut</span><span style="color:#323232;"> _buf </span><span style="font-weight:bold;color:#a71d5d;">= </span><span style="color:#323232;">vec![</span><span style="color:#0086b3;">0</span><span style="color:#323232;">; </span><span style="color:#0086b3;">100</span><span style="color:#323232;">]; </span><span style="font-style:italic;color:#969896;">// read_to_end closes connection?
 </span><span style="color:#323232;">stream.</span><span style="color:#62a35c;">read</span><span style="color:#323232;">(</span><span style="font-weight:bold;color:#a71d5d;">&amp;mut</span><span style="color:#323232;"> buf).</span><span style="color:#62a35c;">unwrap</span><span style="color:#323232;">();
 </span></pre>
-</code></pre>
+</code></code></pre>
 <p>This example is safe because <code>GET /</code> is <em>generally</em> idempotent but if we had
 a RESTful API or the early data was an action then the early data payload could
 be replayed or delivered out-of-order. If you are interested, <a href="https://blog.trailofbits.com/2019/03/25/what-application-developers-need-to-know-about-tls-early-data-0rtt/">this post</a>
