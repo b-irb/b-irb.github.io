@@ -85,6 +85,7 @@ blockquote {
     border-bottom-right-radius: 5px;
     border-left: 5px solid #ababab;
     background-color: #e2e0e0;
+    min-width: fit-content;
 }
 
     </style>
@@ -100,12 +101,12 @@ blockquote {
 <article><p>After watching society crumble in the comfort of quarantine, I was bored. Therefore, I chose to operate a Tor <a href="https://community.torproject.org/relay/">relay</a>. Initially, I wanted to operate an exit node because it looked more exciting, I would be part of the barrier between the Tor network and the clearnet but the prospect of having my door kicked in by <a href="https://community.torproject.org/relay/community-resources/eff-tor-legal-faq/">law enforcement</a> or dealing with thousands of <a href="https://www.copyright.gov/legislation/dmca.pdf">legal notices</a> dissuaded me. Instead, I opted to operate a middle relay node because the risk of any legal implication was low and I can still contribute to the Tor network.</p>
 <p>I will discuss the process behind operating a middle relay (to learn about the Tor protocol itself, refer to a brief <a href="https://2019.www.torproject.org/about/overview.html.en">overview</a> and <a href="https://2019.www.torproject.org/docs/faq.html.en#Torisdifferent">comparison to traditional proxies</a>). If you want to operate a relay yourself, consult the <a href="https://trac.torproject.org/projects/tor/wiki/TorRelayGuide">official relay guide</a>.</p>
 <h2>Terminology</h2>
-<table><thead><tr><th>Term</th><th></th><th>Description</th></tr></thead><tbody>
-<tr><td>Middle relay</td><td>:</td><td>Midpoint node in a Tor circuit.</td></tr>
-<tr><td>Middle probability</td><td>:</td><td>Probability that a tor client uses the relay as a middle relay.</td></tr>
-<tr><td>Guard relay</td><td>:</td><td>Entry point for tor clients to enter the Tor network.</td></tr>
-<tr><td>Guard probability</td><td>:</td><td>Probability that a tor client uses the relay as an entry guard.</td></tr>
-</tbody></table>
+<p>| Term | | Description |
+–– | | ––
+Middle relay | : | Midpoint node in a Tor circuit.
+Middle probability | : | Probability that a tor client uses the relay as a middle relay.
+Guard relay | : | Entry point for tor clients to enter the Tor network.
+Guard probability | : | Probability that a tor client uses the relay as an entry guard.</p>
 <h2>TL;DR</h2>
 <table><thead><tr><th>Date</th><th>Event</th></tr></thead><tbody>
 <tr><td><strong>Jun 06</strong></td><td>Relay began unmeasured phase (little traffic).</td></tr>
