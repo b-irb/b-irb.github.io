@@ -11,18 +11,16 @@ footer {
 
 body {
     font: 1em "Helvetica", "Arial", sans-serif;
+    margin: 0 auto 0 auto;
     overflow-y: scroll;
     overflow-wrap: normal;
     max-width: 100ch;
     padding: 1em;
-    margin: 0 auto 0 auto;
 }
 
-@media (max-width:641px)  {
-    body {
-        max-width: 100%;
-    }
-}
+p { hyphens: auto; }
+
+a.url { word-break: break-all; }
 
 table, th {
     border: 2px solid #000;
@@ -32,6 +30,13 @@ table, th {
 
 table tr {
     border-style: dotted;
+}
+
+article {
+    padding: 1ch 1ch 1ch 1ch;
+    border-top-right-radius: 5px;
+    border-bottom-right-radius: 5px;
+    background-color: #eeeee4;
 }
 
 table td {
@@ -50,6 +55,7 @@ img {
 
 pre, code {
     font-family: 'Fira Mono', monospace;
+    overflow-x: auto;
 }
 
 nav ul {
@@ -59,6 +65,7 @@ nav ul {
     flex-wrap: wrap;
     padding: 0px;
     flex-shrink: 0;
+    min-width: 0;
 }
 
 nav ul li {
@@ -66,11 +73,19 @@ nav ul li {
 }
 
 blockquote {
-    margin-left: 5px;
+    margin: 0;
     padding: 1vh 1vw;
     border-top-right-radius: 5px;
     border-bottom-right-radius: 5px;
     border-left: 5px solid #ababab;
     background-color: #e2e0e0;
-    min-width: fit-content;
+    overflow-x: auto;
 }
+
+@media (max-width:641px)  {
+    body { max-width: 100%; }
+    article { padding: 0; }
+    blockquote { margin-right: 0; }
+}
+
+
