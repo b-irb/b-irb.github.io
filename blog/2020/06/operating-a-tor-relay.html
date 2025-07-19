@@ -24,18 +24,16 @@ footer {
 
 body {
     font: 1em "Helvetica", "Arial", sans-serif;
+    margin: 0 auto 0 auto;
     overflow-y: scroll;
     overflow-wrap: normal;
     max-width: 100ch;
     padding: 1em;
-    margin: 0 auto 0 auto;
 }
 
-@media (max-width:641px)  {
-    body {
-        max-width: 100%;
-    }
-}
+p { hyphens: auto; }
+
+a.url { word-break: break-all; }
 
 table, th {
     border: 2px solid #000;
@@ -45,6 +43,13 @@ table, th {
 
 table tr {
     border-style: dotted;
+}
+
+article {
+    padding: 1ch 1ch 1ch 1ch;
+    border-top-right-radius: 5px;
+    border-bottom-right-radius: 5px;
+    background-color: #eeeee4;
 }
 
 table td {
@@ -63,6 +68,7 @@ img {
 
 pre, code {
     font-family: 'Fira Mono', monospace;
+    overflow-x: auto;
 }
 
 nav ul {
@@ -72,6 +78,7 @@ nav ul {
     flex-wrap: wrap;
     padding: 0px;
     flex-shrink: 0;
+    min-width: 0;
 }
 
 nav ul li {
@@ -79,14 +86,22 @@ nav ul li {
 }
 
 blockquote {
-    margin-left: 5px;
+    margin: 0;
     padding: 1vh 1vw;
     border-top-right-radius: 5px;
     border-bottom-right-radius: 5px;
     border-left: 5px solid #ababab;
     background-color: #e2e0e0;
-    min-width: fit-content;
+    overflow-x: auto;
 }
+
+@media (max-width:641px)  {
+    body { max-width: 100%; }
+    article { padding: 0; }
+    blockquote { margin-right: 0; }
+}
+
+
 
     </style>
 </head>
@@ -98,7 +113,8 @@ blockquote {
     </ul>
 </nav>
 <h1>Operating a Tor Relay</h1>
-<article><p>After watching society crumble in the comfort of quarantine, I was bored. Therefore, I chose to operate a Tor <a href="https://community.torproject.org/relay/">relay</a>. Initially, I wanted to operate an exit node because it looked more exciting, I would be part of the barrier between the Tor network and the clearnet but the prospect of having my door kicked in by <a href="https://community.torproject.org/relay/community-resources/eff-tor-legal-faq/">law enforcement</a> or dealing with thousands of <a href="https://www.copyright.gov/legislation/dmca.pdf">legal notices</a> dissuaded me. Instead, I opted to operate a middle relay node because the risk of any legal implication was low and I can still contribute to the Tor network.</p>
+<article><h1>Prelude</h1>
+<p>After watching society crumble in the comfort of quarantine, I was bored. Therefore, I chose to operate a Tor <a href="https://community.torproject.org/relay/">relay</a>. Initially, I wanted to operate an exit node because it looked more exciting, I would be part of the barrier between the Tor network and the clearnet but the prospect of having my door kicked in by <a href="https://community.torproject.org/relay/community-resources/eff-tor-legal-faq/">law enforcement</a> or dealing with thousands of <a href="https://www.copyright.gov/legislation/dmca.pdf">legal notices</a> dissuaded me. Instead, I opted to operate a middle relay node because the risk of any legal implication was low and I can still contribute to the Tor network.</p>
 <p>I will discuss the process behind operating a middle relay (to learn about the Tor protocol itself, refer to a brief <a href="https://2019.www.torproject.org/about/overview.html.en">overview</a> and <a href="https://2019.www.torproject.org/docs/faq.html.en#Torisdifferent">comparison to traditional proxies</a>). If you want to operate a relay yourself, consult the <a href="https://trac.torproject.org/projects/tor/wiki/TorRelayGuide">official relay guide</a>.</p>
 <h2>Terminology</h2>
 <p>| Term | | Description |

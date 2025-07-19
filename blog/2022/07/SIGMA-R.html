@@ -24,18 +24,16 @@ footer {
 
 body {
     font: 1em "Helvetica", "Arial", sans-serif;
+    margin: 0 auto 0 auto;
     overflow-y: scroll;
     overflow-wrap: normal;
     max-width: 100ch;
     padding: 1em;
-    margin: 0 auto 0 auto;
 }
 
-@media (max-width:641px)  {
-    body {
-        max-width: 100%;
-    }
-}
+p { hyphens: auto; }
+
+a.url { word-break: break-all; }
 
 table, th {
     border: 2px solid #000;
@@ -45,6 +43,13 @@ table, th {
 
 table tr {
     border-style: dotted;
+}
+
+article {
+    padding: 1ch 1ch 1ch 1ch;
+    border-top-right-radius: 5px;
+    border-bottom-right-radius: 5px;
+    background-color: #eeeee4;
 }
 
 table td {
@@ -63,6 +68,7 @@ img {
 
 pre, code {
     font-family: 'Fira Mono', monospace;
+    overflow-x: auto;
 }
 
 nav ul {
@@ -72,6 +78,7 @@ nav ul {
     flex-wrap: wrap;
     padding: 0px;
     flex-shrink: 0;
+    min-width: 0;
 }
 
 nav ul li {
@@ -79,14 +86,22 @@ nav ul li {
 }
 
 blockquote {
-    margin-left: 5px;
+    margin: 0;
     padding: 1vh 1vw;
     border-top-right-radius: 5px;
     border-bottom-right-radius: 5px;
     border-left: 5px solid #ababab;
     background-color: #e2e0e0;
-    min-width: fit-content;
+    overflow-x: auto;
 }
+
+@media (max-width:641px)  {
+    body { max-width: 100%; }
+    article { padding: 0; }
+    blockquote { margin-right: 0; }
+}
+
+
 
     </style>
 </head>
@@ -98,43 +113,51 @@ blockquote {
     </ul>
 </nav>
 <h1>SIGMA-R</h1>
-<article><script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
-<p>SIGMA-R is a member of the <a href="https://webee.technion.ac.il/~hugo/sigma-pdf.pdf">SIGMA (SIGn-and-MAc)</a>
+<article><p>SIGMA-R is a member of the <a href="https://webee.technion.ac.il/~hugo/sigma-pdf.pdf">SIGMA (SIGn-and-MAc)</a>
 authenticated key exchange family, using Diffie-Hellman. The SIGMA family was
 used with IPSec IKE(straightforv2) and inspired early versions of TLS. This article explains the SIGMA protocol family with heavy references to the <a href="https://webee.technion.ac.il/~hugo/sigma.html">SIGMA presentation</a>.</p>
 <p>It is not to be confused with <a href="https://crypto.stanford.edu/cs355/19sp/lec6.pdf">sigma protocols</a>.</p>
 <h2>Primer: Diffie-Hellman</h2>
-<p>Two parties, \(A\) and \(B\), have a shared generator \(g \in G\) where \(G\) is a group and \(\forall a,b \in \mathbb{N}.\,\, g^{ab} = g^{ba}\). For FFDHE, it is important to parameterize the group and generator (<a href="https://weakdh.org/imperfect-forward-secrecy-ccs15.pdf">which many IKE servers failed to do</a>).</p>
+<p>Two parties, <span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>A</mi></mrow><annotation encoding="application/x-tex">A</annotation></semantics></math></span> and <span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>B</mi></mrow><annotation encoding="application/x-tex">B</annotation></semantics></math></span>, have a shared generator <span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>g</mi><mo>∈</mo><mi>G</mi></mrow><annotation encoding="application/x-tex">g \in G</annotation></semantics></math></span> where <span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>G</mi></mrow><annotation encoding="application/x-tex">G</annotation></semantics></math></span> is a group and <span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">∀</mi><mi>a</mi><mo separator="true">,</mo><mi>b</mi><mo>∈</mo><mi mathvariant="double-struck">N</mi><mi mathvariant="normal">.</mi><msup><mi>g</mi><mrow><mi>a</mi><mi>b</mi></mrow></msup><mo>=</mo><msup><mi>g</mi><mrow><mi>b</mi><mi>a</mi></mrow></msup></mrow><annotation encoding="application/x-tex">\forall a, b \in \N. g^{ab} = g^{ba}</annotation></semantics></math></span>. For FFDHE, it is important to parameterize the group and generator (<a href="https://weakdh.org/imperfect-forward-secrecy-ccs15.pdf">which many IKE servers failed to do</a>).</p>
 <p>The below command will generate custom FFDHE parameters:</p>
 <code><pre>
 <span style="color:#323232;">$ openssl dhparam -out dhparam 4096
 </span></pre>
 </code></code></pre>
 <p>ECDHE does not require parameterization because ECDHE uses safe curves (e.g., <a href="https://cr.yp.to/ecdh/curve25519-20060209.pdf">Curve25519</a> or <a href="https://safecurves.cr.yp.to/">others</a>).</p>
-<p><span class="math math-display">
-\begin{eqnarray*}
-\text{A} &amp;\xrightarrow{g^a} \text{B} \\\\
-\text{A} &amp;\xleftarrow{g^b} \text{B}
-\end{eqnarray*}
-</span></p>
-<p>Now A and B can compute \(g^{ab} = x = g^{ba}\) then derive a shared key, \(\text{key} = \text{KDF}(x)\).</p>
+<p><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mtable rowspacing="0.25em" columnalign="center" columnspacing="0em"><mtr><mtd><mstyle scriptlevel="0" displaystyle="true"><mtext>A</mtext></mstyle></mtd><mtd><mstyle scriptlevel="0" displaystyle="true"><mrow><mpadded width="0px"><mphantom><mover><mo stretchy="true" minsize="3.0em">→</mo><mpadded width="+0.6em" lspace="0.3em"><msup><mi>g</mi><mi>a</mi></msup></mpadded></mover></mphantom></mpadded><mpadded height="0px" depth="0px"><munderover><mo stretchy="true" minsize="3.0em">→</mo><mpadded width="+0.6em" lspace="0.3em"><mphantom><mspace width="4em"/></mphantom></mpadded><mpadded width="+0.6em" lspace="0.3em"><msup><mi>g</mi><mi>a</mi></msup></mpadded></munderover></mpadded><mtext>B</mtext></mrow></mstyle></mtd></mtr><mtr><mtd><mstyle scriptlevel="0" displaystyle="true"><mtext>A</mtext></mstyle></mtd><mtd><mstyle scriptlevel="0" displaystyle="true"><mrow><mpadded width="0px"><mphantom><mover><mo stretchy="true" minsize="3.0em">←</mo><mpadded width="+0.6em" lspace="0.3em"><msup><mi>g</mi><mi>b</mi></msup></mpadded></mover></mphantom></mpadded><mpadded height="0px" depth="0px"><munderover><mo stretchy="true" minsize="3.0em">←</mo><mpadded width="+0.6em" lspace="0.3em"><mphantom><mspace width="4em"/></mphantom></mpadded><mpadded width="+0.6em" lspace="0.3em"><msup><mi>g</mi><mi>b</mi></msup></mpadded></munderover></mpadded><mtext>B</mtext></mrow></mstyle></mtd></mtr></mtable><annotation encoding="application/x-tex">
+\newcommand\pad{\phantom{\hspace{4em}}}
+\newcommand\fra[1]{\vphantom{\xrightarrow{#1}}\smash{\xrightarrow[\pad]{#1}}}
+\newcommand\fla[1]{\vphantom{\xleftarrow{#1}}\smash{\xleftarrow[\pad]{#1}}}
+\begin{gather*}
+\text{A} &amp;\fra{g^a} \text{B} \\
+\text{A} &amp;\fla{g^b} \text{B}
+\end{gather*}
+</annotation></semantics></math></span></p>
+<p>Now A and B can compute <span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msup><mi>g</mi><mrow><mi>a</mi><mi>b</mi></mrow></msup><mo>=</mo><mi>x</mi><mo>=</mo><msup><mi>g</mi><mrow><mi>b</mi><mi>a</mi></mrow></msup></mrow><annotation encoding="application/x-tex">g^{ab} = x = g^{ba}</annotation></semantics></math></span> then derive a shared key, <span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mtext>key</mtext><mo>=</mo><mtext>KDF</mtext><mo stretchy="false">(</mo><mi>x</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">\text{key} = \text{KDF}(x)</annotation></semantics></math></span>.</p>
 <h2>Authenticated Diffie-Hellman</h2>
-<p>The problem with Diffie-Hellman is that the parties are unauthenticated so it is feasible for an active attacker \(E\) to intercept all communication.</p>
-<p><span class="math math-display">
-\begin{eqnarray*}
-\text{A} \xrightarrow{g^a} \text{E} \xrightarrow{h^c} \text{B} \\\\
-\text{A} \xleftarrow{h^d} \text{E} \xleftarrow{g^b} \text{B}
-\end{eqnarray*}
-</span></p>
+<p>The problem with Diffie-Hellman is that the parties are unauthenticated so it is feasible for an active attacker <span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>E</mi></mrow><annotation encoding="application/x-tex">E</annotation></semantics></math></span> to intercept all communication.</p>
+<p><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mtable rowspacing="0.25em" columnalign="center" columnspacing="0em"><mtr><mtd><mstyle scriptlevel="0" displaystyle="true"><mrow><mtext>A</mtext><mpadded width="0px"><mphantom><mover><mo stretchy="true" minsize="3.0em">→</mo><mpadded width="+0.6em" lspace="0.3em"><msup><mi>g</mi><mi>a</mi></msup></mpadded></mover></mphantom></mpadded><mpadded height="0px" depth="0px"><munderover><mo stretchy="true" minsize="3.0em">→</mo><mpadded width="+0.6em" lspace="0.3em"><mphantom><mspace width="4em"/></mphantom></mpadded><mpadded width="+0.6em" lspace="0.3em"><msup><mi>g</mi><mi>a</mi></msup></mpadded></munderover></mpadded><mtext>E</mtext><mpadded width="0px"><mphantom><mover><mo stretchy="true" minsize="3.0em">→</mo><mpadded width="+0.6em" lspace="0.3em"><msup><mi>h</mi><mi>c</mi></msup></mpadded></mover></mphantom></mpadded><mpadded height="0px" depth="0px"><munderover><mo stretchy="true" minsize="3.0em">→</mo><mpadded width="+0.6em" lspace="0.3em"><mphantom><mspace width="4em"/></mphantom></mpadded><mpadded width="+0.6em" lspace="0.3em"><msup><mi>h</mi><mi>c</mi></msup></mpadded></munderover></mpadded><mtext>B</mtext></mrow></mstyle></mtd></mtr><mtr><mtd><mstyle scriptlevel="0" displaystyle="true"><mrow><mtext>A</mtext><mpadded width="0px"><mphantom><mover><mo stretchy="true" minsize="3.0em">←</mo><mpadded width="+0.6em" lspace="0.3em"><msup><mi>h</mi><mi>d</mi></msup></mpadded></mover></mphantom></mpadded><mpadded height="0px" depth="0px"><munderover><mo stretchy="true" minsize="3.0em">←</mo><mpadded width="+0.6em" lspace="0.3em"><mphantom><mspace width="4em"/></mphantom></mpadded><mpadded width="+0.6em" lspace="0.3em"><msup><mi>h</mi><mi>d</mi></msup></mpadded></munderover></mpadded><mtext>E</mtext><mpadded width="0px"><mphantom><mover><mo stretchy="true" minsize="3.0em">←</mo><mpadded width="+0.6em" lspace="0.3em"><msup><mi>g</mi><mi>b</mi></msup></mpadded></mover></mphantom></mpadded><mpadded height="0px" depth="0px"><munderover><mo stretchy="true" minsize="3.0em">←</mo><mpadded width="+0.6em" lspace="0.3em"><mphantom><mspace width="4em"/></mphantom></mpadded><mpadded width="+0.6em" lspace="0.3em"><msup><mi>g</mi><mi>b</mi></msup></mpadded></munderover></mpadded><mtext>B</mtext></mrow></mstyle></mtd></mtr></mtable><annotation encoding="application/x-tex">
+\newcommand\pad{\phantom{\hspace{4em}}}
+\newcommand\fra[1]{\vphantom{\xrightarrow{#1}}\smash{\xrightarrow[\pad]{#1}}}
+\newcommand\fla[1]{\vphantom{\xleftarrow{#1}}\smash{\xleftarrow[\pad]{#1}}}
+\begin{gather*}
+\text{A} \fra{g^a} \text{E} \fra{h^c} \text{B} \\
+\text{A} \fla{h^d} \text{E} \fla{g^b} \text{B}
+\end{gather*}
+</annotation></semantics></math></span></p>
 <p>However, blindly attaching signatures introduces an identity midbinding attack and other vulnerabilities.</p>
-<p><span class="math math-display">
-\begin{eqnarray*}
-\text{A} \xrightarrow{g^a} &amp;\text{E} \xrightarrow{g^a} \text{B} \\\\
-\text{A} \xleftarrow{g^b,\\,B,\\,\text{SIG}\_\text{B}(g^b, g^a)} &amp;\text{E} \xleftarrow{g^b,\\,B,\\,\text{SIG}\_\text{B}(g^b,\\,g^a)} \text{B} \\\\
-\text{A} \xrightarrow{A,\\,\text{SIG}\_\text{A}(g^a, g^b)} &amp;\text{E} \xrightarrow{E,\\,\text{SIG}\_\text{E}(g^a,\\,g^b)} \text{B}
-\end{eqnarray*}
-</span></p>
-<p>\(B\) believes they’re talking to \(E\) whereas \(A\) believes they’re talking to \(B\). Additionally, this leaks the identity of both \(A\) and \(B\) which restricts privacy. There are other schemes for attempting to implement authentication by attaching a signature to all handshake messages but this is vulnerable to a reflection attack.</p>
+<p><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mtable rowspacing="0.25em" columnalign="center" columnspacing="0em"><mtr><mtd><mstyle scriptlevel="0" displaystyle="true"><mrow><mtext>A</mtext><mpadded width="0px"><mphantom><mover><mo stretchy="true" minsize="3.0em">→</mo><mpadded width="+0.6em" lspace="0.3em"><msup><mi>g</mi><mi>a</mi></msup></mpadded></mover></mphantom></mpadded><mpadded height="0px" depth="0px"><munderover><mo stretchy="true" minsize="3.0em">→</mo><mpadded width="+0.6em" lspace="0.3em"><mphantom><mspace width="12em"/></mphantom></mpadded><mpadded width="+0.6em" lspace="0.3em"><msup><mi>g</mi><mi>a</mi></msup></mpadded></munderover></mpadded><mtext>E</mtext><mpadded width="0px"><mphantom><mover><mo stretchy="true" minsize="3.0em">→</mo><mpadded width="+0.6em" lspace="0.3em"><msup><mi>g</mi><mi>a</mi></msup></mpadded></mover></mphantom></mpadded><mpadded height="0px" depth="0px"><munderover><mo stretchy="true" minsize="3.0em">→</mo><mpadded width="+0.6em" lspace="0.3em"><mphantom><mspace width="12em"/></mphantom></mpadded><mpadded width="+0.6em" lspace="0.3em"><msup><mi>g</mi><mi>a</mi></msup></mpadded></munderover></mpadded><mtext>B</mtext></mrow></mstyle></mtd></mtr><mtr><mtd><mstyle scriptlevel="0" displaystyle="true"><mrow><mtext>A</mtext><mpadded width="0px"><mphantom><mover><mo stretchy="true" minsize="3.0em">←</mo><mpadded width="+0.6em" lspace="0.3em"><mrow><msup><mi>g</mi><mi>b</mi></msup><mo separator="true">,</mo><mtext> </mtext><mi>B</mi><mo separator="true">,</mo><mtext> </mtext><msub><mtext>SIG</mtext><mtext>B</mtext></msub><mo stretchy="false">(</mo><msup><mi>g</mi><mi>b</mi></msup><mo separator="true">,</mo><msup><mi>g</mi><mi>a</mi></msup><mo stretchy="false">)</mo></mrow></mpadded></mover></mphantom></mpadded><mpadded height="0px" depth="0px"><munderover><mo stretchy="true" minsize="3.0em">←</mo><mpadded width="+0.6em" lspace="0.3em"><mphantom><mspace width="12em"/></mphantom></mpadded><mpadded width="+0.6em" lspace="0.3em"><mrow><msup><mi>g</mi><mi>b</mi></msup><mo separator="true">,</mo><mtext> </mtext><mi>B</mi><mo separator="true">,</mo><mtext> </mtext><msub><mtext>SIG</mtext><mtext>B</mtext></msub><mo stretchy="false">(</mo><msup><mi>g</mi><mi>b</mi></msup><mo separator="true">,</mo><msup><mi>g</mi><mi>a</mi></msup><mo stretchy="false">)</mo></mrow></mpadded></munderover></mpadded><mtext>E</mtext><mpadded width="0px"><mphantom><mover><mo stretchy="true" minsize="3.0em">←</mo><mpadded width="+0.6em" lspace="0.3em"><mrow><msup><mi>g</mi><mi>b</mi></msup><mo separator="true">,</mo><mtext> </mtext><mi>B</mi><mo separator="true">,</mo><mtext> </mtext><msub><mtext>SIG</mtext><mtext>B</mtext></msub><mo stretchy="false">(</mo><msup><mi>g</mi><mi>b</mi></msup><mo separator="true">,</mo><mtext> </mtext><msup><mi>g</mi><mi>a</mi></msup><mo stretchy="false">)</mo></mrow></mpadded></mover></mphantom></mpadded><mpadded height="0px" depth="0px"><munderover><mo stretchy="true" minsize="3.0em">←</mo><mpadded width="+0.6em" lspace="0.3em"><mphantom><mspace width="12em"/></mphantom></mpadded><mpadded width="+0.6em" lspace="0.3em"><mrow><msup><mi>g</mi><mi>b</mi></msup><mo separator="true">,</mo><mtext> </mtext><mi>B</mi><mo separator="true">,</mo><mtext> </mtext><msub><mtext>SIG</mtext><mtext>B</mtext></msub><mo stretchy="false">(</mo><msup><mi>g</mi><mi>b</mi></msup><mo separator="true">,</mo><mtext> </mtext><msup><mi>g</mi><mi>a</mi></msup><mo stretchy="false">)</mo></mrow></mpadded></munderover></mpadded><mtext>B</mtext></mrow></mstyle></mtd></mtr><mtr><mtd><mstyle scriptlevel="0" displaystyle="true"><mrow><mtext>A</mtext><mpadded width="0px"><mphantom><mover><mo stretchy="true" minsize="3.0em">→</mo><mpadded width="+0.6em" lspace="0.3em"><mrow><mi>A</mi><mo separator="true">,</mo><mtext> </mtext><msub><mtext>SIG</mtext><mtext>A</mtext></msub><mo stretchy="false">(</mo><msup><mi>g</mi><mi>a</mi></msup><mo separator="true">,</mo><msup><mi>g</mi><mi>b</mi></msup><mo stretchy="false">)</mo></mrow></mpadded></mover></mphantom></mpadded><mpadded height="0px" depth="0px"><munderover><mo stretchy="true" minsize="3.0em">→</mo><mpadded width="+0.6em" lspace="0.3em"><mphantom><mspace width="12em"/></mphantom></mpadded><mpadded width="+0.6em" lspace="0.3em"><mrow><mi>A</mi><mo separator="true">,</mo><mtext> </mtext><msub><mtext>SIG</mtext><mtext>A</mtext></msub><mo stretchy="false">(</mo><msup><mi>g</mi><mi>a</mi></msup><mo separator="true">,</mo><msup><mi>g</mi><mi>b</mi></msup><mo stretchy="false">)</mo></mrow></mpadded></munderover></mpadded><mtext>E</mtext><mpadded width="0px"><mphantom><mover><mo stretchy="true" minsize="3.0em">→</mo><mpadded width="+0.6em" lspace="0.3em"><mrow><mi>E</mi><mo separator="true">,</mo><mtext> </mtext><msub><mtext>SIG</mtext><mtext>E</mtext></msub><mo stretchy="false">(</mo><msup><mi>g</mi><mi>a</mi></msup><mo separator="true">,</mo><mtext> </mtext><msup><mi>g</mi><mi>b</mi></msup><mo stretchy="false">)</mo></mrow></mpadded></mover></mphantom></mpadded><mpadded height="0px" depth="0px"><munderover><mo stretchy="true" minsize="3.0em">→</mo><mpadded width="+0.6em" lspace="0.3em"><mphantom><mspace width="12em"/></mphantom></mpadded><mpadded width="+0.6em" lspace="0.3em"><mrow><mi>E</mi><mo separator="true">,</mo><mtext> </mtext><msub><mtext>SIG</mtext><mtext>E</mtext></msub><mo stretchy="false">(</mo><msup><mi>g</mi><mi>a</mi></msup><mo separator="true">,</mo><mtext> </mtext><msup><mi>g</mi><mi>b</mi></msup><mo stretchy="false">)</mo></mrow></mpadded></munderover></mpadded><mtext>B</mtext></mrow></mstyle></mtd></mtr></mtable><annotation encoding="application/x-tex">
+\newcommand\pad{\phantom{\hspace{12em}}}
+\newcommand\fra[1]{\vphantom{\xrightarrow{#1}}\smash{\xrightarrow[\pad]{#1}}}
+\newcommand\fla[1]{\vphantom{\xleftarrow{#1}}\smash{\xleftarrow[\pad]{#1}}}
+\begin{gather*}
+\text{A} \fra{g^a} \text{E} \fra{g^a} \text{B} \\
+\text{A} \fla{g^b,\,B,\,\text{SIG}_\text{B}(g^b, g^a)} \text{E} \fla{g^b,\,B,\,\text{SIG}_\text{B}(g^b,\,g^a)} \text{B} \\
+\text{A} \fra{A,\,\text{SIG}_\text{A}(g^a, g^b)} \text{E} \fra{E,\,\text{SIG}_\text{E}(g^a,\,g^b)} \text{B}
+\end{gather*}
+</annotation></semantics></math></span></p>
+<p><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>B</mi></mrow><annotation encoding="application/x-tex">B</annotation></semantics></math></span> believes they’re talking to <span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>E</mi></mrow><annotation encoding="application/x-tex">E</annotation></semantics></math></span> whereas <span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>A</mi></mrow><annotation encoding="application/x-tex">A</annotation></semantics></math></span> believes they’re talking to <span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>B</mi></mrow><annotation encoding="application/x-tex">B</annotation></semantics></math></span>. Additionally, this leaks the identity of both <span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>A</mi></mrow><annotation encoding="application/x-tex">A</annotation></semantics></math></span> and <span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>B</mi></mrow><annotation encoding="application/x-tex">B</annotation></semantics></math></span> which restricts privacy. There are other schemes for attempting to implement authentication by attaching a signature to all handshake messages but this is vulnerable to a reflection attack.</p>
 <h2>Improvements</h2>
 <p>We need to authenticate both parties without leaking their identities, prevent identity misbinding, and prevent reflection attacks – with as few round-trips as possible.</p>
 <p>SIGMA-R compromises on the privacy of the initiator (the SIGMA-I variant protects the identity of the initiator).</p>
@@ -150,47 +173,56 @@ provides a proof that <em>someone</em> knows the session key, but does not prove
 </blockquote>
 <h3>Photuris</h3>
 <p>Photuris improved over the MACed-signature variant by binding the DH key under the signature, alongside the peers’ parameters.</p>
-<p><span class="math math-display"> \text{SIG}\_\text{X}(g^a,g^b,\text{PRF}(g^{ab})) </span></p>
-<p>The \(\text{PRF}\) (e.g., <a href="https://datatracker.ietf.org/doc/html/rfc2522#section-10">MD5</a> – the protocol is from 1999) is used to preserve the confidentiality of \(g^{ab}\) in case the signature allows for message recovery (e.g., <a href="https://web.archive.org/web/20170810025803/http://grouper.ieee.org/groups/1363/P1363a/contributions/pss-submission.pdf">RSA with EMSR-PSS</a> – <a href="https://blog.trailofbits.com/2019/07/08/fuck-rsa/">stop using RSA</a>).</p>
+<p><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><msub><mtext>SIG</mtext><mtext>X</mtext></msub><mo stretchy="false">(</mo><msup><mi>g</mi><mi>a</mi></msup><mo separator="true">,</mo><msup><mi>g</mi><mi>b</mi></msup><mo separator="true">,</mo><mtext>PRF</mtext><mo stretchy="false">(</mo><msup><mi>g</mi><mrow><mi>a</mi><mi>b</mi></mrow></msup><mo stretchy="false">)</mo><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex"> \text{SIG}_\text{X}(g^a,g^b,\text{PRF}(g^{ab})) </annotation></semantics></math></span></p>
+<p>The <span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mtext>PRF</mtext></mrow><annotation encoding="application/x-tex">\text{PRF}</annotation></semantics></math></span> (e.g., <a href="https://datatracker.ietf.org/doc/html/rfc2522#section-10">MD5</a> – the protocol is from 1999) is used to preserve the confidentiality of <span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msup><mi>g</mi><mrow><mi>a</mi><mi>b</mi></mrow></msup></mrow><annotation encoding="application/x-tex">g^{ab}</annotation></semantics></math></span> in case the signature allows for message recovery (e.g., <a href="https://web.archive.org/web/20170810025803/http://grouper.ieee.org/groups/1363/P1363a/contributions/pss-submission.pdf">RSA with EMSR-PSS</a> – <a href="https://blog.trailofbits.com/2019/07/08/fuck-rsa/">stop using RSA</a>).</p>
 <p>However, Photuris also has an identity misbinding attack if the signature allows for message recovery. If an attacker can recover the signature message then the attacker can sign the message with their private key for a registered public identity which will successfully authenticate.</p>
-<p>Additionally, Photuris potentially leaks the hash of \(g^{ab}\) which can allow an eavesdropper to derive the symmetric key where:</p>
-<p><span class="math math-display">
-\text{K}\_s = \text{HMAC-MD5}(\text{MD5}(g^{ab}))
-</span></p>
+<p>Additionally, Photuris potentially leaks the hash of <span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msup><mi>g</mi><mrow><mi>a</mi><mi>b</mi></mrow></msup></mrow><annotation encoding="application/x-tex">g^{ab}</annotation></semantics></math></span> which can allow an eavesdropper to derive the symmetric key where:</p>
+<p><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><msub><mtext>K</mtext><mi>s</mi></msub><mo>=</mo><mtext>HMAC-MD5</mtext><mo stretchy="false">(</mo><mtext>MD5</mtext><mo stretchy="false">(</mo><msup><mi>g</mi><mrow><mi>a</mi><mi>b</mi></mrow></msup><mo stretchy="false">)</mo><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">
+\text{K}_s = \text{HMAC-MD5}(\text{MD5}(g^{ab}))
+</annotation></semantics></math></span></p>
 <p><a href="https://soatok.blog/2020/11/27/the-subtle-hazards-of-real-world-cryptography/">This article</a> has a good explanation of why this is the case.</p>
 <p><strong>In summary:</strong> the key exchange must bind the identities to the signatures – verifying the identity of the signer.</p>
 <h2>ISO</h2>
 <p>The ISO IKE protocol is capable of providing an authenticated key exchange but does not protect the identities of the peers.</p>
-<p><span class="math math-display">
-\begin{eqnarray*}
-\text{A} \xrightarrow{A,\\,g^x} \text{B} \\\\
-\text{A} \xleftarrow{B,\\,g^y,\\,\text{SIG}\_\text{B}(g^x,\\,g^y,\\,A)} \text{B} \\\\
-\text{A} \xrightarrow{\text{SIG}\_\text{B}(g^y,\\,g^x,\\,B)} \text{B}
-\end{eqnarray*}
-</span></p>
+<p><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mtable rowspacing="0.25em" columnalign="right" columnspacing=""><mtr><mtd><mstyle scriptlevel="0" displaystyle="true"><mrow><mtext>A</mtext><mpadded width="0px"><mphantom><mover><mo stretchy="true" minsize="3.0em">→</mo><mpadded width="+0.6em" lspace="0.3em"><mrow><mi>A</mi><mo separator="true">,</mo><mtext> </mtext><msup><mi>g</mi><mi>x</mi></msup></mrow></mpadded></mover></mphantom></mpadded><mpadded height="0px" depth="0px"><munderover><mo stretchy="true" minsize="3.0em">→</mo><mpadded width="+0.6em" lspace="0.3em"><mphantom><mspace width="16em"/></mphantom></mpadded><mpadded width="+0.6em" lspace="0.3em"><mrow><mi>A</mi><mo separator="true">,</mo><mtext> </mtext><msup><mi>g</mi><mi>x</mi></msup></mrow></mpadded></munderover></mpadded><mtext>B</mtext></mrow></mstyle></mtd></mtr><mtr><mtd><mstyle scriptlevel="0" displaystyle="true"><mrow><mtext>A</mtext><mpadded width="0px"><mphantom><mover><mo stretchy="true" minsize="3.0em">←</mo><mpadded width="+0.6em" lspace="0.3em"><mrow><mi>B</mi><mo separator="true">,</mo><mtext> </mtext><msup><mi>g</mi><mi>y</mi></msup><mo separator="true">,</mo><mspace linebreak="newline"></mspace><mo separator="true">,</mo><msub><mtext>SIG</mtext><mtext>B</mtext></msub><mo stretchy="false">(</mo><msup><mi>g</mi><mi>x</mi></msup><mo separator="true">,</mo><mtext> </mtext><msup><mi>g</mi><mi>y</mi></msup><mo separator="true">,</mo><mtext> </mtext><mi>A</mi><mo stretchy="false">)</mo></mrow></mpadded></mover></mphantom></mpadded><mpadded height="0px" depth="0px"><munderover><mo stretchy="true" minsize="3.0em">←</mo><mpadded width="+0.6em" lspace="0.3em"><mphantom><mspace width="16em"/></mphantom></mpadded><mpadded width="+0.6em" lspace="0.3em"><mrow><mi>B</mi><mo separator="true">,</mo><mtext> </mtext><msup><mi>g</mi><mi>y</mi></msup><mo separator="true">,</mo><mspace linebreak="newline"></mspace><mo separator="true">,</mo><msub><mtext>SIG</mtext><mtext>B</mtext></msub><mo stretchy="false">(</mo><msup><mi>g</mi><mi>x</mi></msup><mo separator="true">,</mo><mtext> </mtext><msup><mi>g</mi><mi>y</mi></msup><mo separator="true">,</mo><mtext> </mtext><mi>A</mi><mo stretchy="false">)</mo></mrow></mpadded></munderover></mpadded><mtext>B</mtext></mrow></mstyle></mtd></mtr><mtr><mtd><mstyle scriptlevel="0" displaystyle="true"><mrow><mtext>A</mtext><mpadded width="0px"><mphantom><mover><mo stretchy="true" minsize="3.0em">→</mo><mpadded width="+0.6em" lspace="0.3em"><mrow><msub><mtext>SIG</mtext><mtext>B</mtext></msub><mo stretchy="false">(</mo><msup><mi>g</mi><mi>y</mi></msup><mo separator="true">,</mo><mtext> </mtext><msup><mi>g</mi><mi>x</mi></msup><mo separator="true">,</mo><mtext> </mtext><mi>B</mi><mo stretchy="false">)</mo></mrow></mpadded></mover></mphantom></mpadded><mpadded height="0px" depth="0px"><munderover><mo stretchy="true" minsize="3.0em">→</mo><mpadded width="+0.6em" lspace="0.3em"><mphantom><mspace width="16em"/></mphantom></mpadded><mpadded width="+0.6em" lspace="0.3em"><mrow><msub><mtext>SIG</mtext><mtext>B</mtext></msub><mo stretchy="false">(</mo><msup><mi>g</mi><mi>y</mi></msup><mo separator="true">,</mo><mtext> </mtext><msup><mi>g</mi><mi>x</mi></msup><mo separator="true">,</mo><mtext> </mtext><mi>B</mi><mo stretchy="false">)</mo></mrow></mpadded></munderover></mpadded><mtext>B</mtext></mrow></mstyle></mtd></mtr></mtable><annotation encoding="application/x-tex">
+\newcommand\pad{\phantom{\hspace{16em}}}
+\newcommand\fra[1]{\vphantom{\xrightarrow{#1}}\smash{\xrightarrow[\pad]{#1}}}
+\newcommand\fla[1]{\vphantom{\xleftarrow{#1}}\smash{\xleftarrow[\pad]{#1}}}
+\begin{align*}
+\text{A} \fra{A,\,g^x} \text{B} \\
+\text{A} \fla{B,\,g^y,\\,\text{SIG}_\text{B}(g^x,\,g^y,\,A)} \text{B} \\
+\text{A} \fra{\text{SIG}_\text{B}(g^y,\,g^x,\,B)} \text{B}
+\end{align*}
+</annotation></semantics></math></span></p>
 <p>This is suitable for applications where the identities of the peers are not secret (e.g., a network operator needs to passively record network interactions). However, identities are best concealed for the public Internet.</p>
 <h2>SIGMA</h2>
 <p>SIGMA aims to provide the security of ISO IKE while adding identity confidentiality. Critically, SIGMA MACs the peer identities using the derived Diffie-Hellman key to bind the identities to the newly established session and signs the peer parameters to serve as proof of posession of the identity private key.</p>
-<p><span class="math math-display">
-\begin{eqnarray*}
-\text{A} \xrightarrow{g^x} \text{B} \\\\
-\text{A} \xleftarrow{B,\\,g^y,\\,\text{SIG}\_\text{B}(g^x,\\,g^y),\\,\text{MAC}_{K_m}(B)} \text{B} \\\\
-\text{A} \xrightarrow{A,\\,\text{SIG}\_\text{A}(g^y,\\,g^x),\\,\text{MAC}\_{K\_m}(A)} \text{B} \\\\
-\end{eqnarray*}
-</span></p>
-<p>Where \(K_m\) is a <strong>handshake key</strong> derived from \(g^{xy}\). This is the basis of SIGMA but does <em>not protect identities</em>. Additionally, the signature may be over any ephemeral public value (e.g., nonce or Diffie-Hellman value) but it must be ephemeral or a replay attack is possible.</p>
+<p><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mtable rowspacing="0.25em" columnalign="right" columnspacing=""><mtr><mtd><mstyle scriptlevel="0" displaystyle="true"><mrow><mtext>A</mtext><mpadded width="0px"><mphantom><mover><mo stretchy="true" minsize="3.0em">→</mo><mpadded width="+0.6em" lspace="0.3em"><msup><mi>g</mi><mi>x</mi></msup></mpadded></mover></mphantom></mpadded><mpadded height="0px" depth="0px"><munderover><mo stretchy="true" minsize="3.0em">→</mo><mpadded width="+0.6em" lspace="0.3em"><mphantom><mspace width="16em"/></mphantom></mpadded><mpadded width="+0.6em" lspace="0.3em"><msup><mi>g</mi><mi>x</mi></msup></mpadded></munderover></mpadded><mtext>B</mtext></mrow></mstyle></mtd></mtr><mtr><mtd><mstyle scriptlevel="0" displaystyle="true"><mrow><mtext>A</mtext><mpadded width="0px"><mphantom><mover><mo stretchy="true" minsize="3.0em">←</mo><mpadded width="+0.6em" lspace="0.3em"><mrow><mi>B</mi><mo separator="true">,</mo><mtext> </mtext><msup><mi>g</mi><mi>y</mi></msup><mo separator="true">,</mo><mtext> </mtext><msub><mtext>SIG</mtext><mtext>B</mtext></msub><mo stretchy="false">(</mo><msup><mi>g</mi><mi>x</mi></msup><mo separator="true">,</mo><mtext> </mtext><msup><mi>g</mi><mi>y</mi></msup><mo stretchy="false">)</mo><mo separator="true">,</mo><mtext> </mtext><msub><mtext>MAC</mtext><msub><mi>K</mi><mi>m</mi></msub></msub><mo stretchy="false">(</mo><mi>B</mi><mo stretchy="false">)</mo></mrow></mpadded></mover></mphantom></mpadded><mpadded height="0px" depth="0px"><munderover><mo stretchy="true" minsize="3.0em">←</mo><mpadded width="+0.6em" lspace="0.3em"><mphantom><mspace width="16em"/></mphantom></mpadded><mpadded width="+0.6em" lspace="0.3em"><mrow><mi>B</mi><mo separator="true">,</mo><mtext> </mtext><msup><mi>g</mi><mi>y</mi></msup><mo separator="true">,</mo><mtext> </mtext><msub><mtext>SIG</mtext><mtext>B</mtext></msub><mo stretchy="false">(</mo><msup><mi>g</mi><mi>x</mi></msup><mo separator="true">,</mo><mtext> </mtext><msup><mi>g</mi><mi>y</mi></msup><mo stretchy="false">)</mo><mo separator="true">,</mo><mtext> </mtext><msub><mtext>MAC</mtext><msub><mi>K</mi><mi>m</mi></msub></msub><mo stretchy="false">(</mo><mi>B</mi><mo stretchy="false">)</mo></mrow></mpadded></munderover></mpadded><mtext>B</mtext></mrow></mstyle></mtd></mtr><mtr><mtd><mstyle scriptlevel="0" displaystyle="true"><mrow><mtext>A</mtext><mpadded width="0px"><mphantom><mover><mo stretchy="true" minsize="3.0em">→</mo><mpadded width="+0.6em" lspace="0.3em"><mrow><mi>A</mi><mo separator="true">,</mo><mtext> </mtext><msub><mtext>SIG</mtext><mtext>A</mtext></msub><mo stretchy="false">(</mo><msup><mi>g</mi><mi>y</mi></msup><mo separator="true">,</mo><mtext> </mtext><msup><mi>g</mi><mi>x</mi></msup><mo stretchy="false">)</mo><mo separator="true">,</mo><mtext> </mtext><msub><mtext>MAC</mtext><msub><mi>K</mi><mi>m</mi></msub></msub><mo stretchy="false">(</mo><mi>A</mi><mo stretchy="false">)</mo></mrow></mpadded></mover></mphantom></mpadded><mpadded height="0px" depth="0px"><munderover><mo stretchy="true" minsize="3.0em">→</mo><mpadded width="+0.6em" lspace="0.3em"><mphantom><mspace width="16em"/></mphantom></mpadded><mpadded width="+0.6em" lspace="0.3em"><mrow><mi>A</mi><mo separator="true">,</mo><mtext> </mtext><msub><mtext>SIG</mtext><mtext>A</mtext></msub><mo stretchy="false">(</mo><msup><mi>g</mi><mi>y</mi></msup><mo separator="true">,</mo><mtext> </mtext><msup><mi>g</mi><mi>x</mi></msup><mo stretchy="false">)</mo><mo separator="true">,</mo><mtext> </mtext><msub><mtext>MAC</mtext><msub><mi>K</mi><mi>m</mi></msub></msub><mo stretchy="false">(</mo><mi>A</mi><mo stretchy="false">)</mo></mrow></mpadded></munderover></mpadded><mtext>B</mtext></mrow></mstyle></mtd></mtr></mtable><annotation encoding="application/x-tex">
+\newcommand\pad{\phantom{\hspace{16em}}}
+\newcommand\fra[1]{\vphantom{\xrightarrow{#1}}\smash{\xrightarrow[\pad]{#1}}}
+\newcommand\fla[1]{\vphantom{\xleftarrow{#1}}\smash{\xleftarrow[\pad]{#1}}}
+\begin{align*}
+\text{A} \fra{g^x} \text{B} \\
+\text{A} \fla{B,\,g^y,\,\text{SIG}_\text{B}(g^x,\,g^y),\,\text{MAC}_{K_m}(B)} \text{B} \\
+\text{A} \fra{A,\,\text{SIG}_\text{A}(g^y,\,g^x),\,\text{MAC}_{K_m}(A)} \text{B} \\
+\end{align*}
+</annotation></semantics></math></span></p>
+<p>Where <span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>K</mi><mi>m</mi></msub></mrow><annotation encoding="application/x-tex">K_m</annotation></semantics></math></span> is a <strong>handshake key</strong> derived from <span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msup><mi>g</mi><mrow><mi>x</mi><mi>y</mi></mrow></msup></mrow><annotation encoding="application/x-tex">g^{xy}</annotation></semantics></math></span>. This is the basis of SIGMA but does <em>not protect identities</em>. Additionally, the signature may be over any ephemeral public value (e.g., nonce or Diffie-Hellman value) but it must be ephemeral or a replay attack is possible.</p>
 <p>Note: the handshake key should <strong>not</strong> be used as the symmetric key; a new session key should be generated to enforce independence.</p>
 <h3>SIGMA-R</h3>
 <p>SIGMA-R is an extension to the basic SIGMA handshake which protects the identity of the responder (the identity of the initiator is unprotected from an active attacker).</p>
 <p>SIGMA-R will delay authenticating identities until the key exchange has occured.</p>
-<p><span class="math math-display">
-\begin{eqnarray*}
-\text{A} \xrightarrow{g^x} \text{B} \\\\
-\text{A} \xleftarrow{g^y} \text{B} \\\\
-\text{A} \xrightarrow{A,\\,\text{SIG}\_\text{A}(g^y,\\,g^x),\\,\text{MAC}_{K_m}(A)} \text{B} \\\\
-\text{A} \xleftarrow{B,\\,\text{SIG}\_\text{B}(g^x,\\,g^y),\\,\text{MAC}\_{K\_m}(B)} \text{B}
-\end{eqnarray*}
-</span></p>
+<p><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mtable rowspacing="0.25em" columnalign="right" columnspacing=""><mtr><mtd><mstyle scriptlevel="0" displaystyle="true"><mrow><mtext>A</mtext><mpadded width="0px"><mphantom><mover><mo stretchy="true" minsize="3.0em">→</mo><mpadded width="+0.6em" lspace="0.3em"><msup><mi>g</mi><mi>x</mi></msup></mpadded></mover></mphantom></mpadded><mpadded height="0px" depth="0px"><munderover><mo stretchy="true" minsize="3.0em">→</mo><mpadded width="+0.6em" lspace="0.3em"><mphantom><mspace width="16em"/></mphantom></mpadded><mpadded width="+0.6em" lspace="0.3em"><msup><mi>g</mi><mi>x</mi></msup></mpadded></munderover></mpadded><mtext>B</mtext></mrow></mstyle></mtd></mtr><mtr><mtd><mstyle scriptlevel="0" displaystyle="true"><mrow><mtext>A</mtext><mpadded width="0px"><mphantom><mover><mo stretchy="true" minsize="3.0em">←</mo><mpadded width="+0.6em" lspace="0.3em"><msup><mi>g</mi><mi>y</mi></msup></mpadded></mover></mphantom></mpadded><mpadded height="0px" depth="0px"><munderover><mo stretchy="true" minsize="3.0em">←</mo><mpadded width="+0.6em" lspace="0.3em"><mphantom><mspace width="16em"/></mphantom></mpadded><mpadded width="+0.6em" lspace="0.3em"><msup><mi>g</mi><mi>y</mi></msup></mpadded></munderover></mpadded><mtext>B</mtext></mrow></mstyle></mtd></mtr><mtr><mtd><mstyle scriptlevel="0" displaystyle="true"><mrow><mtext>A</mtext><mpadded width="0px"><mphantom><mover><mo stretchy="true" minsize="3.0em">→</mo><mpadded width="+0.6em" lspace="0.3em"><mrow><mi>A</mi><mo separator="true">,</mo><mtext> </mtext><msub><mtext>SIG</mtext><mtext>A</mtext></msub><mo stretchy="false">(</mo><msup><mi>g</mi><mi>y</mi></msup><mo separator="true">,</mo><mtext> </mtext><msup><mi>g</mi><mi>x</mi></msup><mo stretchy="false">)</mo><mo separator="true">,</mo><mtext> </mtext><msub><mtext>MAC</mtext><msub><mi>K</mi><mi>m</mi></msub></msub><mo stretchy="false">(</mo><mi>A</mi><mo stretchy="false">)</mo></mrow></mpadded></mover></mphantom></mpadded><mpadded height="0px" depth="0px"><munderover><mo stretchy="true" minsize="3.0em">→</mo><mpadded width="+0.6em" lspace="0.3em"><mphantom><mspace width="16em"/></mphantom></mpadded><mpadded width="+0.6em" lspace="0.3em"><mrow><mi>A</mi><mo separator="true">,</mo><mtext> </mtext><msub><mtext>SIG</mtext><mtext>A</mtext></msub><mo stretchy="false">(</mo><msup><mi>g</mi><mi>y</mi></msup><mo separator="true">,</mo><mtext> </mtext><msup><mi>g</mi><mi>x</mi></msup><mo stretchy="false">)</mo><mo separator="true">,</mo><mtext> </mtext><msub><mtext>MAC</mtext><msub><mi>K</mi><mi>m</mi></msub></msub><mo stretchy="false">(</mo><mi>A</mi><mo stretchy="false">)</mo></mrow></mpadded></munderover></mpadded><mtext>B</mtext></mrow></mstyle></mtd></mtr><mtr><mtd><mstyle scriptlevel="0" displaystyle="true"><mrow><mtext>A</mtext><mpadded width="0px"><mphantom><mover><mo stretchy="true" minsize="3.0em">←</mo><mpadded width="+0.6em" lspace="0.3em"><mrow><mi>B</mi><mo separator="true">,</mo><mtext> </mtext><msub><mtext>SIG</mtext><mtext>B</mtext></msub><mo stretchy="false">(</mo><msup><mi>g</mi><mi>x</mi></msup><mo separator="true">,</mo><mtext> </mtext><msup><mi>g</mi><mi>y</mi></msup><mo stretchy="false">)</mo><mo separator="true">,</mo><mtext> </mtext><msub><mtext>MAC</mtext><msub><mi>K</mi><mi>m</mi></msub></msub><mo stretchy="false">(</mo><mi>B</mi><mo stretchy="false">)</mo></mrow></mpadded></mover></mphantom></mpadded><mpadded height="0px" depth="0px"><munderover><mo stretchy="true" minsize="3.0em">←</mo><mpadded width="+0.6em" lspace="0.3em"><mphantom><mspace width="16em"/></mphantom></mpadded><mpadded width="+0.6em" lspace="0.3em"><mrow><mi>B</mi><mo separator="true">,</mo><mtext> </mtext><msub><mtext>SIG</mtext><mtext>B</mtext></msub><mo stretchy="false">(</mo><msup><mi>g</mi><mi>x</mi></msup><mo separator="true">,</mo><mtext> </mtext><msup><mi>g</mi><mi>y</mi></msup><mo stretchy="false">)</mo><mo separator="true">,</mo><mtext> </mtext><msub><mtext>MAC</mtext><msub><mi>K</mi><mi>m</mi></msub></msub><mo stretchy="false">(</mo><mi>B</mi><mo stretchy="false">)</mo></mrow></mpadded></munderover></mpadded><mtext>B</mtext></mrow></mstyle></mtd></mtr></mtable><annotation encoding="application/x-tex">
+\newcommand\pad{\phantom{\hspace{16em}}}
+\newcommand\fra[1]{\vphantom{\xrightarrow{#1}}\smash{\xrightarrow[\pad]{#1}}}
+\newcommand\fla[1]{\vphantom{\xleftarrow{#1}}\smash{\xleftarrow[\pad]{#1}}}
+\begin{align*}
+\text{A} \fra{g^x} \text{B} \\
+\text{A} \fla{g^y} \text{B} \\
+\text{A} \fra{A,\,\text{SIG}_\text{A}(g^y,\,g^x),\,\text{MAC}_{K_m}(A)} \text{B} \\
+\text{A} \fla{B,\,\text{SIG}_\text{B}(g^x,\,g^y),\,\text{MAC}_{K_m}(B)} \text{B}
+\end{align*}
+</annotation></semantics></math></span></p>
 <p>With the same constraints as the basic SIGMA handshake. However, it is crucial that if it is valid for A to exchange a key with itself then the MAC <strong>must be</strong> bound to an identity specific value to prevent reflection attacks.</p>
 <code><pre>
 <span style="color:#323232;">initiator_mac_key </span><span style="font-weight:bold;color:#a71d5d;">= </span><span style="color:#323232;">HKDF(hashes.SHA256(), info</span><span style="font-weight:bold;color:#a71d5d;">=b</span><span style="color:#183691;">&quot;initiator mac key&quot;</span><span style="color:#323232;">, </span><span style="color:#0086b3;">...</span><span style="color:#323232;">).derive(shared_key)
@@ -199,14 +231,17 @@ provides a proof that <em>someone</em> knows the session key, but does not prove
 </code></code></pre>
 <h4>Combined MAC and Signature</h4>
 <p>It is possible to reduce the message size by including the MAC under the signature (the MAC can be calculated by the recipient).</p>
-<p><span class="math math-display">
-\begin{eqnarray*}
-&amp;\vdots&amp; \\\\
-\text{A} &amp;\xrightarrow{A,\\,\text{SIG}\_\text{A}(g^y,\\,g^x,\\,\text{MAC}_{K_m}(A))} \text{B} \\\\
-\text{A} &amp;\xleftarrow{B,\\,\text{SIG}\_\text{B}(g^x,\\,g^y,\\,\text{MAC}\_{K\_m}(B))} \text{B}
-\end{eqnarray*}
-</span></p>
-<p>Additionally, it is possible to wrap the \(g^x\) and \(g^y\) parameters under the MAC.</p>
+<p><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mtable rowspacing="0.25em" columnalign="center" columnspacing="0em"><mtr><mtd class ="mtr-glue"></mtd><mtd><mstyle scriptlevel="0" displaystyle="true"><mi><mi mathvariant="normal">⋮</mi><mpadded height="0em" voffset="0em"><mspace mathbackground="black" width="0em" height="1.5em"></mspace></mpadded></mi></mstyle></mtd><mtd class ="mtr-glue"></mtd><mtd class ="mml-eqn-num"></mtd></mtr><mtr><mtd class ="mtr-glue"></mtd><mtd><mstyle scriptlevel="0" displaystyle="true"><mrow><mtext>A</mtext><mpadded width="0px"><mphantom><mover><mo stretchy="true" minsize="3.0em">→</mo><mpadded width="+0.6em" lspace="0.3em"><mrow><mi>A</mi><mo separator="true">,</mo><mtext> </mtext><msub><mtext>SIG</mtext><mtext>A</mtext></msub><mo stretchy="false">(</mo><msup><mi>g</mi><mi>y</mi></msup><mo separator="true">,</mo><mtext> </mtext><msup><mi>g</mi><mi>x</mi></msup><mo separator="true">,</mo><mtext> </mtext><msub><mtext>MAC</mtext><msub><mi>K</mi><mi>m</mi></msub></msub><mo stretchy="false">(</mo><mi>A</mi><mo stretchy="false">)</mo><mo stretchy="false">)</mo></mrow></mpadded></mover></mphantom></mpadded><mpadded height="0px" depth="0px"><munderover><mo stretchy="true" minsize="3.0em">→</mo><mpadded width="+0.6em" lspace="0.3em"><mphantom><mspace width="16em"/></mphantom></mpadded><mpadded width="+0.6em" lspace="0.3em"><mrow><mi>A</mi><mo separator="true">,</mo><mtext> </mtext><msub><mtext>SIG</mtext><mtext>A</mtext></msub><mo stretchy="false">(</mo><msup><mi>g</mi><mi>y</mi></msup><mo separator="true">,</mo><mtext> </mtext><msup><mi>g</mi><mi>x</mi></msup><mo separator="true">,</mo><mtext> </mtext><msub><mtext>MAC</mtext><msub><mi>K</mi><mi>m</mi></msub></msub><mo stretchy="false">(</mo><mi>A</mi><mo stretchy="false">)</mo><mo stretchy="false">)</mo></mrow></mpadded></munderover></mpadded><mtext>B</mtext></mrow></mstyle></mtd><mtd class ="mtr-glue"></mtd><mtd class ="mml-eqn-num"></mtd></mtr><mtr><mtd class ="mtr-glue"></mtd><mtd><mstyle scriptlevel="0" displaystyle="true"><mrow><mtext>A</mtext><mpadded width="0px"><mphantom><mover><mo stretchy="true" minsize="3.0em">←</mo><mpadded width="+0.6em" lspace="0.3em"><mrow><mi>B</mi><mo separator="true">,</mo><mtext> </mtext><msub><mtext>SIG</mtext><mtext>B</mtext></msub><mo stretchy="false">(</mo><msup><mi>g</mi><mi>x</mi></msup><mo separator="true">,</mo><mtext> </mtext><msup><mi>g</mi><mi>y</mi></msup><mo separator="true">,</mo><mtext> </mtext><msub><mtext>MAC</mtext><msub><mi>K</mi><mi>m</mi></msub></msub><mo stretchy="false">(</mo><mi>B</mi><mo stretchy="false">)</mo><mo stretchy="false">)</mo></mrow></mpadded></mover></mphantom></mpadded><mpadded height="0px" depth="0px"><munderover><mo stretchy="true" minsize="3.0em">←</mo><mpadded width="+0.6em" lspace="0.3em"><mphantom><mspace width="16em"/></mphantom></mpadded><mpadded width="+0.6em" lspace="0.3em"><mrow><mi>B</mi><mo separator="true">,</mo><mtext> </mtext><msub><mtext>SIG</mtext><mtext>B</mtext></msub><mo stretchy="false">(</mo><msup><mi>g</mi><mi>x</mi></msup><mo separator="true">,</mo><mtext> </mtext><msup><mi>g</mi><mi>y</mi></msup><mo separator="true">,</mo><mtext> </mtext><msub><mtext>MAC</mtext><msub><mi>K</mi><mi>m</mi></msub></msub><mo stretchy="false">(</mo><mi>B</mi><mo stretchy="false">)</mo><mo stretchy="false">)</mo></mrow></mpadded></munderover></mpadded><mtext>B</mtext></mrow></mstyle></mtd><mtd class ="mtr-glue"></mtd><mtd class ="mml-eqn-num"></mtd></mtr></mtable><annotation encoding="application/x-tex">
+\newcommand\pad{\phantom{\hspace{16em}}}
+\newcommand\fra[1]{\vphantom{\xrightarrow{#1}}\smash{\xrightarrow[\pad]{#1}}}
+\newcommand\fla[1]{\vphantom{\xleftarrow{#1}}\smash{\xleftarrow[\pad]{#1}}}
+\begin{gather}
+\vdots \\
+\text{A} \fra{A,\,\text{SIG}_\text{A}(g^y,\,g^x,\,\text{MAC}_{K_m}(A))} \text{B} \\
+\text{A} \fla{B,\,\text{SIG}_\text{B}(g^x,\,g^y,\,\text{MAC}_{K_m}(B))} \text{B}
+\end{gather}
+</annotation></semantics></math></span></p>
+<p>Additionally, it is possible to wrap the <span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msup><mi>g</mi><mi>x</mi></msup></mrow><annotation encoding="application/x-tex">g^x</annotation></semantics></math></span> and <span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msup><mi>g</mi><mi>y</mi></msup></mrow><annotation encoding="application/x-tex">g^y</annotation></semantics></math></span>  parameters under the MAC.</p>
 <p>A pseudo-implementation is available <a href="https://gist.github.com/b-irb/2a1e7f3adbab34a41530037417f782d0">here</a>.</p>
 <h2>Implementation Recommendations</h2>
 <ul>
