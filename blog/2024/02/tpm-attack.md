@@ -70,7 +70,7 @@ The TPM provides the ability to seal secrets inside the TPM such that the
 secrets can only be accessed when a specific authorisation policy is met, these
 include:
 
-- **TPM2_PoilcyPCR:** valid if the selected PCR have the desired values.
+- **TPM2_PolicyPCR:** valid if the selected PCR have the desired values.
 - **TPM2_PolicySecret:** valid if the knowledge of a secret value is provided.
 - **TPM2_PolicyPassword:** valid if the `authValue` of the authorized entity is provided when the session is used for authorisation.
 - **TPM2_PolicyCommandCode:** valid when the authorized command has the specified command code.
