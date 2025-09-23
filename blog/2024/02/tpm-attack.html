@@ -29,6 +29,7 @@ body {
     overflow-wrap: normal;
     max-width: 100ch;
     padding: 1em;
+    background: repeating-linear-gradient(skyblue, white, skyblue 150vh);
 }
 
 p { hyphens: auto; }
@@ -46,10 +47,10 @@ table tr {
 }
 
 article {
-    padding: 1ch 1ch 1ch 1ch;
+    padding: 0.01ch 1ch 1ch 1ch;
     border-top-right-radius: 5px;
     border-bottom-right-radius: 5px;
-    background-color: #eeeee4;
+    background-color: #ccffcc;
 }
 
 table td {
@@ -91,7 +92,7 @@ blockquote {
     border-top-right-radius: 5px;
     border-bottom-right-radius: 5px;
     border-left: 5px solid #ababab;
-    background-color: #e2e0e0;
+    background-color: #ffffff;
     overflow-x: auto;
 }
 
@@ -175,7 +176,7 @@ PCR value.</p>
 secrets can only be accessed when a specific authorisation policy is met, these
 include:</p>
 <ul>
-<li><strong>TPM2_PoilcyPCR:</strong> valid if the selected PCR have the desired values.</li>
+<li><strong>TPM2_PolicyPCR:</strong> valid if the selected PCR have the desired values.</li>
 <li><strong>TPM2_PolicySecret:</strong> valid if the knowledge of a secret value is provided.</li>
 <li><strong>TPM2_PolicyPassword:</strong> valid if the <code>authValue</code> of the authorized entity is provided when the session is used for authorisation.</li>
 <li><strong>TPM2_PolicyCommandCode:</strong> valid when the authorized command has the specified command code.</li>
