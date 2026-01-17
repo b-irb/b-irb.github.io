@@ -10,13 +10,15 @@ footer {
 }
 
 body {
-    font: 1em "Helvetica", "Arial", sans-serif;
+    font: 0.9em "Arial", sans-serif;
     margin: 0 auto 0 auto;
     overflow-y: scroll;
     overflow-wrap: normal;
     max-width: 100ch;
     padding: 1em;
-    background: repeating-linear-gradient(skyblue, white, skyblue min(100%, 150vh));
+    background: repeating-linear-gradient(skyblue, white, skyblue 100vh);
+    min-height: 100vh;
+    text-align: justify;
 }
 
 p { hyphens: auto; }
@@ -37,7 +39,6 @@ article {
     padding: 0.01ch 1ch 1ch 1ch;
     border-top-right-radius: 5px;
     border-bottom-right-radius: 5px;
-    background-color: #ccffcc;
 }
 
 table td {
@@ -52,6 +53,12 @@ tbody tr:nth-child(odd) {
 
 img {
     max-width: 100%;
+}
+
+pre {
+    border: solid;
+    border-radius: 10px;
+    padding: 1ch;
 }
 
 pre, code {
@@ -88,5 +95,3 @@ blockquote {
     article { padding: 0; }
     blockquote { margin-right: 0; }
 }
-
-
