@@ -6,7 +6,7 @@ overhyping "APT" capabilities writing UEFI persistent malware. The main
 takeaway I want readers to get from this post is that **UEFI is not magic;
 you can write UEFI malware in an afternoon.** This article will _not_ be
 covering how to bypass Secure Boot, Intel Boot Guard or whichever
-"le choix du jour" because bypasses for boot security technologies are pretty frequent and firmware is slow to update.
+_du jour_ because bypasses for boot security technologies are pretty frequent and firmware is slow to update.
 
 I have written a very simple PoC implant for OVMF called
 [PigPEI](https://github.com/b-irb/PigPEI). Pig can be used
